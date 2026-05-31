@@ -1,0 +1,224 @@
+/* Crunchy Tools — popup. Design tokens from the Claude Design handoff. */
+:root {
+  --bg: #08080a;
+  --surface: #121215;
+  --surface-2: #17171b;
+  --surface-3: #1d1d22;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.12);
+  --text: #f4f4f5;
+  --text-2: #9b9ba3;
+  --text-3: #65656d;
+  --accent: #f47521;
+  --accent-bright: #ff8f47;
+  --accent-dim: rgba(244, 117, 33, 0.14);
+  --track: #2b2b31;
+  --knob: #f4f4f5;
+  --sans: 'Geist', system-ui, -apple-system, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, 'SF Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  width: 332px;
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--accent-dim); }
+
+/* ── Icon mark ─────────────────────────────────────────────────────── */
+.icon-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  background: linear-gradient(160deg, #ff9a52 0%, #f47521 46%, #e25f12 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(244, 117, 33, 0.35);
+}
+.icon-mark svg { display: block; }
+
+/* ── Header ────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  background: linear-gradient(180deg, rgba(244, 117, 33, 0.07), rgba(244, 117, 33, 0) 80%);
+  border-bottom: 1px solid var(--line);
+}
+.header .title-wrap { flex: 1; min-width: 0; }
+.header .title {
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.header .subtitle {
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 1px;
+}
+
+/* ── Status card ───────────────────────────────────────────────────── */
+.status-wrap { padding: 14px 18px 4px; }
+.status-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px;
+  border-radius: 13px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  transition: opacity 0.2s;
+}
+.status-card .thumb {
+  width: 46px;
+  height: 46px;
+  border-radius: 9px;
+  flex: 0 0 auto;
+  background: repeating-linear-gradient(135deg, #26262c 0 6px, #1f1f24 6px 12px);
+  border: 1px solid var(--line);
+}
+.status-card .status-main { flex: 1; min-width: 0; }
+.status-card .status-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status-card .status-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+}
+.status-card .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: #34d27b;
+  box-shadow: 0 0 0 3px rgba(52, 210, 123, 0.18);
+}
+.status-card .dot.idle {
+  background: #5a5a62;
+  box-shadow: none;
+}
+.status-card .status-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Sections & rows ───────────────────────────────────────────────── */
+.section { padding: 12px 18px 4px; }
+.section-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin: 4px 0 2px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+}
+.row .row-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  transition: opacity 0.2s;
+}
+.hr { height: 1px; background: var(--line); }
+
+.section.playback {
+  padding: 8px 18px 12px;
+  border-top: 1px solid var(--line);
+  margin-top: 8px;
+}
+
+/* ── Footer ────────────────────────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px;
+  border-top: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.2);
+}
+.footer .stats {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+}
+.footer .settings-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0;
+}
+
+/* ── Toggle switch ─────────────────────────────────────────────────── */
+.switch { position: relative; display: inline-block; flex: 0 0 auto; }
+.switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.switch .slider {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: var(--track);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  transition: background 0.22s ease, box-shadow 0.22s ease, opacity 0.2s;
+}
+.switch .slider::before {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: var(--knob);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.switch input:checked + .slider {
+  background: linear-gradient(180deg, #ff8f47, #f0680f);
+  box-shadow:
+    0 0 0 1px rgba(244, 117, 33, 0.6),
+    0 3px 10px rgba(244, 117, 33, 0.4),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+/* md (header) */
+.switch { width: 46px; height: 26px; }
+.switch .slider::before { top: 3px; left: 3px; width: 20px; height: 20px; }
+.switch input:checked + .slider::before { transform: translateX(20px); }
+
+/* sm (rows) */
+.switch.sm { width: 38px; height: 22px; }
+.switch.sm .slider::before { top: 3px; left: 3px; width: 16px; height: 16px; }
+.switch.sm input:checked + .slider::before { transform: translateX(16px); }
+
+/* ── Disabled (master off) ─────────────────────────────────────────── */
+body.disabled .status-card,
+body.disabled .section .row,
+body.disabled .section-label { opacity: 0.45; }
+body.disabled .switch:not(.master) { pointer-events: none; }

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crunchy Tools</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./popup.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="icon-mark" style="width: 34px; height: 34px; border-radius: 9px">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3.2 6.4a1 1 0 0 1 1.55-.84l7.1 4.8a1.2 1.2 0 0 1 0 1.99l-7.1 4.8A1 1 0 0 1 3.2 16.3V6.4Z" fill="#1a0d03" />
+          <path d="M11.6 6.4a1 1 0 0 1 1.55-.84l7.1 4.8a1.2 1.2 0 0 1 0 1.99l-7.1 4.8a1 1 0 0 1-1.55-.83V6.4Z" fill="#1a0d03" />
+        </svg>
+      </div>
+      <div class="title-wrap">
+        <div class="title">Crunchy Tools</div>
+        <div class="subtitle" id="state">Active</div>
+      </div>
+      <label class="switch master">
+        <input type="checkbox" id="enabled" />
+        <span class="slider"></span>
+      </label>
+    </header>
+
+    <div class="status-wrap">
+      <div class="status-card">
+        <div class="thumb" id="statusThumb"></div>
+        <div class="status-main">
+          <div class="status-title" id="statusTitle">Not watching</div>
+          <div class="status-meta">
+            <span class="dot idle" id="statusDot"></span>
+            <span class="status-sub" id="statusSub">Open a Crunchyroll episode</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Auto-skip</div>
+      <div class="row">
+        <span class="row-label">Intro</span>
+        <label class="switch sm"><input type="checkbox" data-skip="intro" /><span class="slider"></span></label>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <span class="row-label">Recap</span>
+        <label class="switch sm"><input type="checkbox" data-skip="recap" /><span class="slider"></span></label>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <span class="row-label">Outro / Credits</span>
+        <label class="switch sm"><input type="checkbox" data-skip="credits" /><span class="slider"></span></label>
+      </div>
+      <div class="hr"></div>
+      <div class="row">
+        <span class="row-label">Next-episode preview</span>
+        <label class="switch sm"><input type="checkbox" data-skip="preview" /><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <div class="section playback">
+      <div class="row">
+        <span class="row-label">Auto-play next episode</span>
+        <label class="switch sm"><input type="checkbox" id="autoNext" /><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span class="stats" id="stats">No skips yet</span>
+      <button type="button" class="settings-link" id="open-options">
+        Settings
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
+    </footer>
+
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>

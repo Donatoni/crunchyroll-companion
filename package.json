@@ -1,0 +1,17 @@
+{
+  "name": "crunchy-tools",
+  "version": "0.1.0",
+  "description": "All-in-one Crunchyroll enhancement extension: auto-skip intro/outro/recap/preview and auto-play next episode.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc --noEmit && node scripts/build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.12",
+    "@types/node": "^22.5.0",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.9.3"
+  }
+}

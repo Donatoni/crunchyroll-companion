@@ -77,6 +77,64 @@ body {
 .brand .brand-name { font-size: 14.5px; font-weight: 600; }
 .brand .brand-ver { font-size: 11px; color: var(--text-3); font-family: var(--mono); }
 
+.master-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  transition: background 0.2s, border-color 0.2s;
+}
+.master-box.on { background: var(--accent-dim); border-color: rgba(244, 117, 33, 0.35); }
+.master-title { font-size: 13px; font-weight: 600; }
+.master-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+.group-label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin: 26px 0 4px;
+}
+.radio-stack { display: flex; flex-direction: column; margin-top: 8px; }
+
+.mal-connect {
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.mal-connect.connected {
+  background: linear-gradient(180deg, rgba(46, 81, 162, 0.16), rgba(46, 81, 162, 0.04));
+  border-color: rgba(46, 81, 162, 0.4);
+}
+.mal-badge-lg {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #2e51a2;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+}
+.mal-connect-main { flex: 1; }
+.mal-connect-title { font-size: 14.5px; font-weight: 600; }
+.mal-connect-sub { font-size: 12.5px; color: var(--text-2); margin-top: 3px; line-height: 1.5; }
+#connect { background: #2e51a2; color: #fff; }
+#connect:hover { background: #3660bd; }
+
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-item {
   display: flex;

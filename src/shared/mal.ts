@@ -23,6 +23,10 @@ export interface MalAnime {
   id: number;
   title: string;
   episodes: number | null;
+  /** MAL media type: tv, movie, ova, ona, special, music. */
+  mediaType: string | null;
+  /** English / Japanese / synonym titles, for fuzzy matching. */
+  altTitles: string[];
 }
 
 /** PKCE verifier: 43–128 chars from the unreserved set. */
@@ -101,17 +105,31 @@ export async function getUserName(access: string): Promise<string> {
   return (await res.json()).name;
 }
 
+interface MalAnimeNode {
+  id: number;
+  title: string;
+  num_episodes?: number;
+  media_type?: string;
+  alternative_titles?: { en?: string; ja?: string; synonyms?: string[] };
+}
+
 export async function searchAnime(access: string, q: string): Promise<MalAnime[]> {
   const res = await fetch(
-    `${API}/anime?q=${encodeURIComponent(q)}&limit=10&fields=num_episodes`,
+    `${API}/anime?q=${encodeURIComponent(q)}&limit=10&fields=num_episodes,media_type,alternative_titles`,
     { headers: { Authorization: `Bearer ${access}` } },
   );
   if (!res.ok) throw new Error(`MAL search HTTP ${res.status}`);
   const j = await res.json();
-  return (j.data ?? []).map((d: { node: { id: number; title: string; num_episodes?: number } }) => ({
+  return (j.data ?? []).map((d: { node: MalAnimeNode }) => ({
     id: d.node.id,
     title: d.node.title,
     episodes: d.node.num_episodes || null,
+    mediaType: d.node.media_type ?? null,
+    altTitles: [
+      d.node.alternative_titles?.en,
+      d.node.alternative_titles?.ja,
+      ...(d.node.alternative_titles?.synonyms ?? []),
+    ].filter((t): t is string => !!t),
   }));
 }
 

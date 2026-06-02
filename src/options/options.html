@@ -29,22 +29,23 @@
           </div>
         </div>
 
+        <!-- Master enable -->
+        <div class="master-box on" id="masterBox">
+          <div>
+            <div class="master-title">Extension</div>
+            <div class="master-sub" id="masterSub">Enabled</div>
+          </div>
+          <label class="switch sm"><input type="checkbox" id="enabled" /><span class="slider"></span></label>
+        </div>
+
         <nav class="nav">
-          <button type="button" class="nav-item active" data-tab="general">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 5v4M8 15v4" /></svg>
-            General
-          </button>
-          <button type="button" class="nav-item" data-tab="skip">
+          <button type="button" class="nav-item active" data-tab="skipping">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5 11 12 4 17.5V6.5Z M12 6.5 19 12 12 17.5V6.5Z" /></svg>
-            Auto-skip
+            Skipping
           </button>
           <button type="button" class="nav-item" data-tab="playback">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5.5 18 12 8 18.5V5.5Z" /></svg>
             Playback
-          </button>
-          <button type="button" class="nav-item" data-tab="method">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z M9 15h6a3 3 0 0 0 3-3V9" /></svg>
-            Skip method
           </button>
           <button type="button" class="nav-item" data-tab="mal">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12 M4 12h12 M4 18h7 M15 17l2.5 2.5L22 14" /></svg>
@@ -65,51 +66,59 @@
 
       <!-- Content -->
       <section class="content">
-        <!-- General -->
-        <div class="panel active" data-panel="general">
+        <!-- Skipping -->
+        <div class="panel active" data-panel="skipping">
           <div class="panel-head">
-            <h2>General</h2>
-            <p>Master controls for the extension.</p>
+            <h2>Skipping</h2>
+            <p>Which segments to skip, and how Crunchy Tools jumps past them.</p>
           </div>
-          <div class="fields">
-            <div class="field last">
-              <div>
-                <div class="field-title">Enable extension</div>
-                <div class="field-desc">The master switch. When off, every enhancement below is paused.</div>
+          <div data-dim>
+            <div class="group-label">Auto-skip segments</div>
+            <div class="fields">
+              <div class="field">
+                <div><div class="field-title">Intro</div><div class="field-desc">The opening theme / OP.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" data-skip="intro" /><span class="slider"></span></label></span>
               </div>
-              <span class="field-control">
-                <label class="switch"><input type="checkbox" id="enabled" /><span class="slider"></span></label>
-              </span>
+              <div class="field">
+                <div><div class="field-title">Recap</div><div class="field-desc">“Previously on…” catch-up segments.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" data-skip="recap" /><span class="slider"></span></label></span>
+              </div>
+              <div class="field">
+                <div><div class="field-title">Outro / Credits</div><div class="field-desc">The ending theme / ED.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" data-skip="credits" /><span class="slider"></span></label></span>
+              </div>
+              <div class="field last">
+                <div><div class="field-title">Next-episode preview</div><div class="field-desc">The teaser shown after the credits.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" data-skip="preview" /><span class="slider"></span></label></span>
+              </div>
             </div>
-          </div>
-          <div class="note">
-            <span class="note-arrow">&#8627;</span>
-            <span class="note-text">Settings sync across every browser you're signed into. Changes apply live — no reload needed.</span>
-          </div>
-        </div>
 
-        <!-- Auto-skip -->
-        <div class="panel" data-panel="skip">
-          <div class="panel-head">
-            <h2>Auto-skip</h2>
-            <p>Pick which segments Crunchy Tools jumps past automatically.</p>
-          </div>
-          <div class="fields dim" data-dim>
-            <div class="field">
-              <div><div class="field-title">Intro</div><div class="field-desc">The opening theme / OP.</div></div>
-              <span class="field-control"><label class="switch"><input type="checkbox" data-skip="intro" /><span class="slider"></span></label></span>
+            <div class="group-label">Method</div>
+            <div class="radio-stack">
+              <label class="radio-card">
+                <input type="radio" name="mode" value="seek" />
+                <span class="radio-dot"></span>
+                <span>
+                  <span class="radio-title">Smart seek <span class="badge">Recommended</span></span>
+                  <span class="radio-desc">Uses Crunchyroll's published skip timings to jump instantly. Falls back to the native button when an episode has no data.</span>
+                </span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="mode" value="click" />
+                <span class="radio-dot"></span>
+                <span>
+                  <span class="radio-title">Click native button</span>
+                  <span class="radio-desc">Only ever auto-clicks Crunchyroll's own “Skip” button when it appears.</span>
+                </span>
+              </label>
             </div>
-            <div class="field">
-              <div><div class="field-title">Recap</div><div class="field-desc">“Previously on…” catch-up segments.</div></div>
-              <span class="field-control"><label class="switch"><input type="checkbox" data-skip="recap" /><span class="slider"></span></label></span>
-            </div>
-            <div class="field">
-              <div><div class="field-title">Outro / Credits</div><div class="field-desc">The ending theme / ED.</div></div>
-              <span class="field-control"><label class="switch"><input type="checkbox" data-skip="credits" /><span class="slider"></span></label></span>
-            </div>
-            <div class="field last">
-              <div><div class="field-title">Next-episode preview</div><div class="field-desc">The teaser shown after the credits.</div></div>
-              <span class="field-control"><label class="switch"><input type="checkbox" data-skip="preview" /><span class="slider"></span></label></span>
+
+            <div class="group-label">Feedback</div>
+            <div class="fields">
+              <div class="field last">
+                <div><div class="field-title">Show skip toast</div><div class="field-desc">A brief “Skipped intro — Undo” notice after each skip, so a jump never feels like a glitch.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" id="showToast" /><span class="slider"></span></label></span>
+              </div>
             </div>
           </div>
         </div>
@@ -120,45 +129,15 @@
             <h2>Playback</h2>
             <p>What happens around and between episodes.</p>
           </div>
-          <div class="fields dim" data-dim>
+          <div class="fields" data-dim>
             <div class="field">
               <div><div class="field-title">Auto-play next episode</div><div class="field-desc">Clicks “Up Next” the moment an episode ends.</div></div>
               <span class="field-control"><label class="switch"><input type="checkbox" id="autoNext" /><span class="slider"></span></label></span>
             </div>
-            <div class="field">
+            <div class="field last">
               <div><div class="field-title">Keep watching</div><div class="field-desc">Dismisses “are you still watching?” and profile prompts during long auto-play sessions.</div></div>
               <span class="field-control"><label class="switch"><input type="checkbox" id="keepWatching" /><span class="slider"></span></label></span>
             </div>
-            <div class="field last">
-              <div><div class="field-title">Show skip toast</div><div class="field-desc">A brief “Skipped intro — Undo” notice after each skip, so a jump never feels like a glitch.</div></div>
-              <span class="field-control"><label class="switch"><input type="checkbox" id="showToast" /><span class="slider"></span></label></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Skip method -->
-        <div class="panel" data-panel="method">
-          <div class="panel-head">
-            <h2>Skip method</h2>
-            <p>How Crunchy Tools performs each skip.</p>
-          </div>
-          <div class="stack" data-dim>
-            <label class="radio-card">
-              <input type="radio" name="mode" value="seek" />
-              <span class="radio-dot"></span>
-              <span>
-                <span class="radio-title">Smart seek <span class="badge">Recommended</span></span>
-                <span class="radio-desc">Uses Crunchyroll's published skip timings to jump instantly. Falls back to the native button when an episode has no data.</span>
-              </span>
-            </label>
-            <label class="radio-card">
-              <input type="radio" name="mode" value="click" />
-              <span class="radio-dot"></span>
-              <span>
-                <span class="radio-title">Click native button</span>
-                <span class="radio-desc">Only ever auto-clicks Crunchyroll's own “Skip” button when it appears.</span>
-              </span>
-            </label>
           </div>
         </div>
 
@@ -168,26 +147,24 @@
             <h2>MyAnimeList sync</h2>
             <p>Update your MAL progress automatically as you watch.</p>
           </div>
+          <div class="mal-connect" id="mal-connect">
+            <div class="mal-badge-lg">MAL</div>
+            <div class="mal-connect-main">
+              <div class="mal-connect-title" id="mal-status">Not connected</div>
+              <div class="mal-connect-sub">Sign in once on MyAnimeList — nothing to configure.</div>
+            </div>
+            <button type="button" class="btn" id="connect">Connect MyAnimeList</button>
+            <button type="button" class="btn ghost" id="disconnect" hidden>Disconnect</button>
+          </div>
           <div class="fields">
             <div class="field last">
-              <div><div class="field-title">Sync watched episodes</div><div class="field-desc">Updates your MyAnimeList progress at ~80% watched.</div></div>
+              <div><div class="field-title">Sync watched episodes</div><div class="field-desc">Updates your MyAnimeList progress automatically at ~80% watched.</div></div>
               <span class="field-control"><label class="switch"><input type="checkbox" id="malEnabled" /><span class="slider"></span></label></span>
-            </div>
-          </div>
-          <div class="stack" id="mal-setup">
-            <p class="hint">
-              Connect your MyAnimeList account once — you'll be taken to
-              MyAnimeList to log in and approve. Nothing to configure.
-            </p>
-            <div class="actions">
-              <button id="connect" class="btn">Connect MyAnimeList</button>
-              <button id="disconnect" class="btn ghost" hidden>Disconnect</button>
-              <span id="mal-status" class="muted"></span>
             </div>
           </div>
           <div id="mappings-wrap" hidden>
             <h3 class="subhead">Series → MyAnimeList mappings</h3>
-            <p class="hint">If a show synced to the wrong entry, fix its MAL anime ID here.</p>
+            <p class="hint">If a show synced to the wrong entry, correct its MAL anime ID here.</p>
             <div id="mappings"></div>
           </div>
         </div>

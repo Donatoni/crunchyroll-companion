@@ -22,99 +22,147 @@
       </div>
       <div class="title-wrap">
         <div class="title">Crunchy Tools</div>
-        <div class="subtitle" id="state">Active</div>
+        <div class="state-row">
+          <span class="state-dot" id="stateDot"></span>
+          <span class="state-text" id="state">Active</span>
+        </div>
       </div>
-      <label class="switch master">
-        <input type="checkbox" id="enabled" />
-        <span class="slider"></span>
-      </label>
+      <label class="switch"><input type="checkbox" id="enabled" /><span class="slider"></span></label>
     </header>
 
-    <div class="status-wrap">
-      <div class="status-card">
-        <div class="thumb" id="statusThumb"></div>
-        <div class="status-main">
-          <div class="status-title" id="statusTitle">Not watching</div>
-          <div class="status-meta">
-            <span class="dot idle" id="statusDot"></span>
-            <span class="status-sub" id="statusSub">Open a Crunchyroll episode</span>
+    <div id="mainView">
+      <div class="scroll">
+      <!-- Now Playing -->
+      <div class="np-wrap">
+        <div class="np-card" id="npCard">
+          <div class="np-thumb" id="npThumb">
+            <span class="np-play">
+              <span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+              </span>
+            </span>
+          </div>
+          <div class="np-main">
+            <div class="np-title" id="npTitle">Not watching</div>
+            <div class="np-sub" id="npSub">Open a Crunchyroll episode and your controls appear here.</div>
+            <div class="np-skip" id="npSkip" hidden>
+              <span class="dot" id="npSkipDot"></span>
+              <span id="npSkipText">Skip data found · 0 segments</span>
+            </div>
           </div>
         </div>
       </div>
-      <div class="mal-info" id="malInfo" hidden>
-        <label class="mal-field">Ep
-          <input class="mal-ep" id="malEp" type="number" min="0" inputmode="numeric" />
-          <span id="malTotal"></span>
-        </label>
-        <span class="mal-sep">·</span>
-        <select class="mal-select" id="malStatusSel" aria-label="List status">
-          <option value="watching">Watching</option>
-          <option value="completed">Completed</option>
-          <option value="on_hold">On hold</option>
-          <option value="dropped">Dropped</option>
-          <option value="plan_to_watch">Plan to watch</option>
-        </select>
-        <span class="mal-sep">·</span>
-        <select class="mal-select" id="malScoreSel" aria-label="Score">
-          <option value="">★ –</option>
-          <option value="10">★ 10</option>
-          <option value="9">★ 9</option>
-          <option value="8">★ 8</option>
-          <option value="7">★ 7</option>
-          <option value="6">★ 6</option>
-          <option value="5">★ 5</option>
-          <option value="4">★ 4</option>
-          <option value="3">★ 3</option>
-          <option value="2">★ 2</option>
-          <option value="1">★ 1</option>
-        </select>
+
+      <!-- MyAnimeList -->
+      <div class="mal-module" id="malModule" hidden>
+        <div class="module-head">
+          <span class="module-label">MyAnimeList</span>
+          <span class="synced" id="malSynced" hidden><span class="dot"></span><span>SYNCED</span></span>
+        </div>
+
+        <!-- connected: tracking card. Rendered immediately; values fill in
+             async (see showMalLoading) instead of showing a skeleton. -->
+        <div class="mal-card" id="malCard" hidden>
+          <div class="mal-row">
+            <span class="mal-row-label">Episode</span>
+            <span class="stepper">
+              <button type="button" id="epMinus" aria-label="One fewer episode">–</button>
+              <span class="stepper-val"><span id="epVal">0</span><span class="stepper-total" id="epTotal"></span></span>
+              <button type="button" id="epPlus" aria-label="One more episode">+</button>
+            </span>
+          </div>
+          <div class="mal-divider"></div>
+          <div class="mal-row">
+            <span class="mal-row-label">Status</span>
+            <div class="dd" id="statusDd">
+              <button type="button" class="dd-btn" id="statusBtn">
+                <span class="cur"><span class="dd-dot" id="statusDot"></span><span id="statusLabel">Watching</span></span>
+                <svg class="dd-chev" width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="var(--text-3)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              </button>
+              <div class="dd-menu dd-status-menu" id="statusMenu" hidden></div>
+            </div>
+          </div>
+          <div class="mal-divider"></div>
+          <div class="mal-row">
+            <span class="mal-row-label">Your score</span>
+            <div class="dd" id="scoreDd">
+              <button type="button" class="dd-btn score-btn" id="scoreBtn">
+                <span class="star">★</span><span id="scoreVal">–</span>
+                <svg class="dd-chev" width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="var(--text-3)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              </button>
+              <div class="dd-menu score-menu" id="scoreMenu" hidden></div>
+            </div>
+          </div>
+          <div class="mal-actions">
+            <a class="mal-link-btn" id="malLink" target="_blank" rel="noopener">
+              View on MAL
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M9 7h8v8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </a>
+            <button type="button" class="rewatch-btn" id="rewatchBtn" hidden>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M4 9a8 8 0 0 1 13.5-3.5L20 8M20 4v4h-4" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" /></svg>
+              Rewatch
+            </button>
+          </div>
+        </div>
+
+        <!-- not connected: nudge -->
+        <button type="button" class="mal-nudge" id="malNudge" hidden>
+          <span class="badge">MAL</span>
+          <span class="nudge-main">
+            <span class="nudge-title">Track on MyAnimeList</span>
+            <span class="nudge-sub">Connect to sync episodes &amp; scores</span>
+          </span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="var(--text-3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+
+        <div class="mal-note" id="malNote" hidden></div>
+        <div class="mal-err" id="malErr" hidden></div>
       </div>
-      <div class="mal-rewatch" id="malRewatch" hidden>
-        <a class="mal-link" id="malLink" target="_blank" rel="noopener" hidden>View on MAL ↗</a>
-        <button type="button" class="mal-rw-btn" id="malRewatchBtn" hidden>↻ Rewatch</button>
+
+      <!-- Auto-skip chips -->
+      <div class="hr"></div>
+      <div class="section" id="skipSection">
+        <div class="module-head">
+          <span class="module-label">Auto-skip</span>
+          <span class="module-meta" id="armedMeta">0 ARMED</span>
+        </div>
+        <div class="chips" id="chips"></div>
       </div>
-      <div class="mal-err" id="malErr" hidden></div>
+
+      <!-- Playback -->
+      <div class="section playback" id="playbackSection">
+        <div class="play-row">
+          <span>Auto-play next episode</span>
+          <label class="switch sm"><input type="checkbox" id="autoNext" /><span class="slider"></span></label>
+        </div>
+      </div>
+      </div>
+
+      <footer class="footer">
+        <span class="stats" id="stats">No skips yet</span>
+        <div class="footer-btns">
+          <button type="button" class="footer-btn" id="open-history">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 7.5v5l3 2" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /><path d="M3.5 12a8.5 8.5 0 1 0 2.2-5.7M5 4v3h3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            Recent
+          </button>
+          <button type="button" class="footer-btn accent" id="open-options">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" stroke-width="1.9" /><path d="M19.4 13a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 0 1-4 0v-.2A1.7 1.7 0 0 0 7 19.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0-1.2-2.9H3a2 2 0 0 1 0-4h.1A1.7 1.7 0 0 0 4.7 7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 2.9-1.2V3a2 2 0 0 1 4 0v.1A1.7 1.7 0 0 0 17 4.7l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0 1.2 2.9H21a2 2 0 0 1 0 4h-.2a1.7 1.7 0 0 0-1.4 1.3Z" stroke="currentColor" stroke-width="1.6" /></svg>
+            Settings
+          </button>
+        </div>
+      </footer>
     </div>
 
-    <div class="section">
-      <div class="section-label">Auto-skip</div>
-      <div class="row">
-        <span class="row-label">Intro</span>
-        <label class="switch sm"><input type="checkbox" data-skip="intro" /><span class="slider"></span></label>
+    <div id="historyView" hidden>
+      <div class="hist-bar">
+        <button type="button" class="hist-back" id="hist-back" aria-label="Back">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+        <span class="hist-title">Continue watching</span>
+        <button type="button" class="hist-clear" id="hist-clear">Clear</button>
       </div>
-      <div class="hr"></div>
-      <div class="row">
-        <span class="row-label">Recap</span>
-        <label class="switch sm"><input type="checkbox" data-skip="recap" /><span class="slider"></span></label>
-      </div>
-      <div class="hr"></div>
-      <div class="row">
-        <span class="row-label">Outro / Credits</span>
-        <label class="switch sm"><input type="checkbox" data-skip="credits" /><span class="slider"></span></label>
-      </div>
-      <div class="hr"></div>
-      <div class="row">
-        <span class="row-label">Next-episode preview</span>
-        <label class="switch sm"><input type="checkbox" data-skip="preview" /><span class="slider"></span></label>
-      </div>
+      <div class="hist-list" id="hist-list"></div>
     </div>
-
-    <div class="section playback">
-      <div class="row">
-        <span class="row-label">Auto-play next episode</span>
-        <label class="switch sm"><input type="checkbox" id="autoNext" /><span class="slider"></span></label>
-      </div>
-    </div>
-
-    <footer class="footer">
-      <span class="stats" id="stats">No skips yet</span>
-      <button type="button" class="settings-link" id="open-options">
-        Settings
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </button>
-    </footer>
 
     <script type="module" src="./popup.ts"></script>
   </body>

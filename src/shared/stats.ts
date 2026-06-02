@@ -3,6 +3,8 @@
  * (device-local). secondsSaved is only known for seek-mode skips (we have the
  * segment length); native-button clicks bump the count without a duration.
  */
+import { isExtensionContextValid } from './runtime';
+
 const KEY = 'stats';
 
 export interface Stats {
@@ -16,10 +18,15 @@ export async function getStats(): Promise<Stats> {
 }
 
 export async function bumpSkip(seconds = 0): Promise<void> {
-  const s = await getStats();
-  s.skips += 1;
-  s.secondsSaved += Math.max(0, Math.round(seconds));
-  await chrome.storage.local.set({ [KEY]: s });
+  if (!isExtensionContextValid()) return; // orphaned content script
+  try {
+    const s = await getStats();
+    s.skips += 1;
+    s.secondsSaved += Math.max(0, Math.round(seconds));
+    await chrome.storage.local.set({ [KEY]: s });
+  } catch {
+    /* extension context invalidated — ignore */
+  }
 }
 
 /** Format seconds as "~3h 10m" / "~12m" / "~0m". */

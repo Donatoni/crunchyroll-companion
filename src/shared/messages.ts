@@ -1,4 +1,5 @@
 import type { SkipSegment, TrackerMeta } from './types';
+import { isExtensionContextValid } from './runtime';
 
 /**
  * Typed message contracts between content scripts and the background service
@@ -62,6 +63,8 @@ export interface MalStatusRequest {
 }
 export interface MalStatusResponse {
   ok: boolean;
+  /** Whether a MAL account is connected (token present), regardless of match. */
+  connected?: boolean;
   title?: string;
   /** MAL anime id (for linking to the show's page). */
   animeId?: number;
@@ -101,22 +104,38 @@ export type RuntimeMessage =
 export function requestSkipEvents(
   episodeId: string,
 ): Promise<FetchSkipEventsResponse> {
-  return chrome.runtime.sendMessage<FetchSkipEventsRequest, FetchSkipEventsResponse>({
-    type: 'FETCH_SKIP_EVENTS',
-    episodeId,
-  });
+  // Never throw synchronously on an orphaned content script (see fireAndForget).
+  if (!isExtensionContextValid()) return Promise.resolve({ ok: false, segments: [] });
+  try {
+    return chrome.runtime.sendMessage<FetchSkipEventsRequest, FetchSkipEventsResponse>({
+      type: 'FETCH_SKIP_EVENTS',
+      episodeId,
+    });
+  } catch {
+    return Promise.resolve({ ok: false, segments: [] });
+  }
+}
+
+/**
+ * Fire-and-forget send that can't throw. `sendMessage` throws *synchronously*
+ * when this content script has been orphaned by an extension reload, so a
+ * `.catch()` on the promise is not enough — we must guard the call itself.
+ */
+function fireAndForget(message: EpisodeMetaMessage | EpisodeWatchedMessage): void {
+  if (!isExtensionContextValid()) return;
+  try {
+    void chrome.runtime.sendMessage(message).catch(() => {});
+  } catch {
+    /* extension context invalidated (reloaded) — ignore */
+  }
 }
 
 export function sendEpisodeMeta(meta: TrackerMeta): void {
-  void chrome.runtime
-    .sendMessage<EpisodeMetaMessage>({ type: 'EPISODE_META', meta })
-    .catch(() => {});
+  fireAndForget({ type: 'EPISODE_META', meta });
 }
 
 export function sendEpisodeWatched(episodeId: string): void {
-  void chrome.runtime
-    .sendMessage<EpisodeWatchedMessage>({ type: 'EPISODE_WATCHED', episodeId })
-    .catch(() => {});
+  fireAndForget({ type: 'EPISODE_WATCHED', episodeId });
 }
 
 export function requestTabStatus(tabId: number): Promise<TabStatusResponse> {

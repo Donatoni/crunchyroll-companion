@@ -13,8 +13,10 @@ import { attachAutoNext } from './autonext';
 import { attachProgress } from './progress';
 import { extractMeta } from './meta';
 import { startKeepWatching } from './keep-watching';
+import { recordHistory } from '@/shared/history';
 import { showToast } from './toast';
 import { requestSkipEvents, sendEpisodeMeta } from '@/shared/messages';
+import { isExtensionContextValid } from '@/shared/runtime';
 import { log } from '@/shared/log';
 import type { EpisodeContext } from '@/shared/types';
 
@@ -93,17 +95,51 @@ function teardownSession(): void {
   teardown = [];
 }
 
+/** Poll for the episode's metadata, then push it to the worker + record history. */
+function captureEpisode(ctx: EpisodeContext): void {
+  let tries = 0;
+  let lastKey = '';
+  const attempt = () => {
+    // Bail if we've navigated to a different episode in the meantime.
+    if (parseEpisode()?.episodeId !== ctx.episodeId) return;
+    const meta = extractMeta(ctx.episodeId);
+    if (meta) {
+      // On SPA auto-advance the series name is already present while the
+      // on-screen episode number still shows the PREVIOUS episode for a beat.
+      // Re-send whenever the scraped episode identity changes so the worker
+      // ends up with the NEW episode's number. Crucially we keep polling the
+      // full window instead of stopping at the first (possibly stale) value —
+      // the tracker only moves forward, so a lingering stale number would
+      // silently skip the increment.
+      const key = `${meta.season}|${meta.episode}|${meta.episodeTitle}`;
+      if (key !== lastKey) {
+        lastKey = key;
+        log('episode meta', `${meta.series} S${meta.season} E${meta.episode}`);
+        sendEpisodeMeta(meta);
+        void recordHistory({
+          episodeId: meta.episodeId,
+          url: ctx.url,
+          series: meta.series,
+          episodeTitle: meta.episodeTitle,
+          episode: meta.episode,
+          season: meta.season,
+          thumbnail: meta.thumbnail,
+        });
+      }
+    }
+    // ~12s window: long enough for the SPA to settle the new episode's DOM,
+    // far shorter than the time until the "watched" threshold fires.
+    if (++tries < 20) window.setTimeout(attempt, 600);
+  };
+  attempt();
+}
+
 function startSession(ctx: EpisodeContext | null): void {
   teardownSession();
 
-  // Top frame: scrape episode metadata for the tracker and hand it to the worker.
-  if (isTopWatch() && ctx) {
-    const meta = extractMeta(ctx.episodeId);
-    if (meta) {
-      log('episode meta', `${meta.series} S${meta.season} E${meta.episode}`);
-      sendEpisodeMeta(meta);
-    }
-  }
+  // Top frame: scrape episode metadata for the tracker + history. The page's
+  // JSON-LD lands a beat after navigation, so poll until it's present.
+  if (isTopWatch() && ctx) captureEpisode(ctx);
 
   const cancelWait = waitForVideo(async (video) => {
     // When we have an episode id, try the skip-events API for precise seeking.
@@ -112,6 +148,12 @@ function startSession(ctx: EpisodeContext | null): void {
       'video ready.',
       ctx ? `episode=${ctx.episodeId}` : 'no episode id (iframe)',
       `skip segments=${segments.length}`,
+      segments.length ? `[${segments.map((s) => s.type).join(', ')}]` : '',
+      `mode=${settings.mode} enabled=${settings.enabled}`,
+      `skip=${Object.entries(settings.skip)
+        .filter(([, on]) => on)
+        .map(([k]) => k)
+        .join('/')}`,
     );
     // API is "active" only when seek mode is on AND we actually have data.
     // dom-skip defers while the seek engine owns skipping; otherwise it clicks.
@@ -145,4 +187,16 @@ function startSession(ctx: EpisodeContext | null): void {
   teardown.push(cancelWait);
 }
 
-onEpisodeChange(startSession);
+const unsubscribeNav = onEpisodeChange(startSession);
+
+// Orphan watchdog: when the extension is reloaded/updated, this content script
+// keeps running but its chrome.* APIs throw "Extension context invalidated".
+// Detect that and shut our recurring work down so the page goes quiet instead
+// of spamming errors. (Reload the Crunchyroll tab to get a fresh content script.)
+const orphanWatch = window.setInterval(() => {
+  if (isExtensionContextValid()) return;
+  window.clearInterval(orphanWatch);
+  teardownSession();
+  unsubscribeNav();
+  log('extension context invalidated — content script stopped (reload the tab)');
+}, 1000);

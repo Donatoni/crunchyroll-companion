@@ -9,6 +9,13 @@ import type { MalToken } from './mal';
 const TOKEN_KEY = 'mal_token';
 const MAP_KEY = 'mal_mappings';
 
+/**
+ * Bump when the auto-resolver algorithm changes. Cached mappings produced by an
+ * older version are re-resolved on next use, so improvements (e.g. better
+ * title matching) automatically heal previously-mismatched shows.
+ */
+export const RESOLVER_VERSION = 2;
+
 export interface TrackerMapping {
   /** MAL anime id this CR series+season maps to. */
   mediaId: number;
@@ -16,6 +23,10 @@ export interface TrackerMapping {
   title: string;
   /** Total episodes in the MAL entry, if known (for COMPLETED detection). */
   episodes: number | null;
+  /** Resolver version that produced this mapping (absent = legacy, re-resolve). */
+  v?: number;
+  /** Set when the user fixed the id by hand in Options — never auto-re-resolve. */
+  pinned?: boolean;
 }
 
 /** Stable key for a CR series + season. */

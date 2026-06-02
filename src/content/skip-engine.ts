@@ -1,6 +1,7 @@
 import { seekTo } from './player';
 import { showToast } from './toast';
 import { bumpSkip } from '@/shared/stats';
+import { log } from '@/shared/log';
 import type { Settings } from '@/shared/settings';
 import { SKIP_LABELS, type SkipSegment } from '@/shared/types';
 
@@ -40,6 +41,11 @@ export function attachSkipEngine(
       if (t + ENTER_EPS >= seg.start && t < seg.end) {
         consumed.add(seg);
         const from = t;
+        log(
+          'seek-skip',
+          seg.type,
+          `${seg.start.toFixed(1)}→${seg.end.toFixed(1)}s (at ${from.toFixed(1)}s)`,
+        );
         seekTo(video, seg.end);
         void bumpSkip(seg.end - from);
 

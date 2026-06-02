@@ -25,6 +25,8 @@ const $ = <T extends HTMLElement>(id: string) => document.querySelector<T>(`#${i
 const enabledEl = $<HTMLInputElement>('enabled');
 const runDot = $<HTMLSpanElement>('runDot');
 const runText = $<HTMLSpanElement>('runText');
+const masterBox = $<HTMLDivElement>('masterBox');
+const masterSub = $<HTMLDivElement>('masterSub');
 const statusEl = $<HTMLDivElement>('status');
 const skipEls = Array.from(
   document.querySelectorAll<HTMLInputElement>('input[data-skip]'),
@@ -49,6 +51,8 @@ function applyEnabled(enabled: boolean): void {
   document.body.classList.toggle('disabled', !enabled);
   runDot.classList.toggle('idle', !enabled);
   runText.textContent = enabled ? 'Running on Crunchyroll' : 'Paused';
+  masterBox.classList.toggle('on', enabled);
+  masterSub.textContent = enabled ? 'Enabled' : 'Disabled';
 }
 
 // ── Sidebar tab switching ───────────────────────────────────────────
@@ -106,6 +110,7 @@ for (const el of modeEls) {
 
 // ── MyAnimeList sync ────────────────────────────────────────────────
 const malEnabledEl = $<HTMLInputElement>('malEnabled');
+const malConnect = $<HTMLDivElement>('mal-connect');
 const connectBtn = $<HTMLButtonElement>('connect');
 const disconnectBtn = $<HTMLButtonElement>('disconnect');
 const malStatusEl = $<HTMLSpanElement>('mal-status');
@@ -132,7 +137,8 @@ async function renderMappings(): Promise<void> {
     id.addEventListener('change', async () => {
       const n = Number(id.value);
       if (Number.isInteger(n) && n > 0) {
-        await setMapping(key, { ...m, mediaId: n });
+        // Pin manual corrections so the auto-resolver never overrides them.
+        await setMapping(key, { ...m, mediaId: n, pinned: true });
         flashSaved();
       }
     });
@@ -155,6 +161,7 @@ async function renderMal(): Promise<void> {
   malEnabledEl.checked = s.mal.enabled;
 
   const token = await getTokenData();
+  malConnect.classList.toggle('connected', !!token);
   if (token) {
     connectBtn.hidden = true;
     disconnectBtn.hidden = false;

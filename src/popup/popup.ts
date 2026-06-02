@@ -1,4 +1,4 @@
-import { getSettings, patchSettings, type Settings } from '@/shared/settings';
+import { getSettings, patchSettings } from '@/shared/settings';
 import type { SkipType, TrackerMeta } from '@/shared/types';
 import { requestMalStatus, setMalStatus } from '@/shared/messages';
 import type {
@@ -7,213 +7,399 @@ import type {
   TabStatusResponse,
 } from '@/shared/messages';
 import { formatSaved, getStats } from '@/shared/stats';
+import { clearHistory, getHistory } from '@/shared/history';
 
-const enabledEl = document.querySelector<HTMLInputElement>('#enabled')!;
-const stateEl = document.querySelector<HTMLDivElement>('#state')!;
-const skipEls = Array.from(
-  document.querySelectorAll<HTMLInputElement>('input[data-skip]'),
-);
+const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
-/** Boolean settings bound to a checkbox by element id. */
-const boolKeys = ['autoNext'] as const;
-const boolEls = Object.fromEntries(
-  boolKeys.map((k) => [k, document.querySelector<HTMLInputElement>(`#${k}`)!]),
-) as Record<(typeof boolKeys)[number], HTMLInputElement>;
+const MAL_STATUS = [
+  { value: 'watching', label: 'Watching', dot: '#3aa0ff' },
+  { value: 'completed', label: 'Completed', dot: '#34d27b' },
+  { value: 'on_hold', label: 'On hold', dot: '#f0b429' },
+  { value: 'dropped', label: 'Dropped', dot: '#f0596b' },
+  { value: 'plan_to_watch', label: 'Plan to watch', dot: '#9b9ba3' },
+];
+const SKIP_SEGMENTS: [SkipType, string][] = [
+  ['intro', 'Intro'],
+  ['recap', 'Recap'],
+  ['credits', 'Outro'],
+  ['preview', 'Preview'],
+];
 
-function applyEnabledUI(enabled: boolean): void {
+type MalPatch = {
+  num_watched_episodes?: number;
+  status?: string;
+  score?: number;
+  is_rewatching?: boolean;
+};
+
+// ── elements ────────────────────────────────────────────────────────
+const enabledEl = $<HTMLInputElement>('#enabled');
+const stateEl = $('#state');
+const stateDot = $('#stateDot');
+const autoNextEl = $<HTMLInputElement>('#autoNext');
+const skipSection = $('#skipSection');
+const playbackSection = $('#playbackSection');
+const armedMeta = $('#armedMeta');
+const chipsEl = $('#chips');
+
+const npCard = $('#npCard');
+const npThumb = $('#npThumb');
+const npTitle = $('#npTitle');
+const npSub = $('#npSub');
+const npSkip = $('#npSkip');
+const npSkipDot = $('#npSkipDot');
+const npSkipText = $('#npSkipText');
+
+const malModule = $('#malModule');
+const malSynced = $('#malSynced');
+const malCard = $('#malCard');
+const malNudge = $('#malNudge');
+const malNote = $('#malNote');
+const malErr = $('#malErr');
+const epVal = $('#epVal');
+const epTotal = $('#epTotal');
+const epMinus = $<HTMLButtonElement>('#epMinus');
+const epPlus = $<HTMLButtonElement>('#epPlus');
+const statusDd = $('#statusDd');
+const statusBtn = $<HTMLButtonElement>('#statusBtn');
+const statusMenu = $('#statusMenu');
+const statusLabel = $('#statusLabel');
+const statusDot = $('#statusDot');
+const scoreDd = $('#scoreDd');
+const scoreBtn = $<HTMLButtonElement>('#scoreBtn');
+const scoreMenu = $('#scoreMenu');
+const scoreVal = $('#scoreVal');
+const malLink = $<HTMLAnchorElement>('#malLink');
+const rewatchBtn = $<HTMLButtonElement>('#rewatchBtn');
+
+let currentMeta: TrackerMeta | null = null;
+let currentSegments = 0;
+let malTotal: number | null = null;
+
+// ── master / settings ───────────────────────────────────────────────
+function armedCount(skip: Record<SkipType, boolean>): number {
+  return SKIP_SEGMENTS.filter(([k]) => skip[k]).length;
+}
+
+function applyEnabledUI(enabled: boolean, skip: Record<SkipType, boolean>): void {
   stateEl.textContent = enabled ? 'Active' : 'Paused';
-  document.body.classList.toggle('disabled', !enabled);
+  stateDot.classList.toggle('off', !enabled);
+  skipSection.classList.toggle('dim', !enabled);
+  playbackSection.classList.toggle('dim', !enabled);
+  armedMeta.textContent = enabled ? `${armedCount(skip)} ARMED` : 'PAUSED';
+}
+
+function chipIcon(active: boolean): string {
+  return active
+    ? '<span class="chip-ic"><svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5 9-10" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'
+    : '<span class="chip-ic"><span class="ring"></span></span>';
+}
+
+function renderChips(skip: Record<SkipType, boolean>): void {
+  chipsEl.replaceChildren();
+  for (const [k, label] of SKIP_SEGMENTS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (skip[k] ? ' active' : '');
+    b.innerHTML = chipIcon(skip[k]) + label;
+    b.addEventListener('click', async () => {
+      const cur = (await getSettings()).skip;
+      await patchSettings({ skip: { ...cur, [k]: !cur[k] } });
+      void render();
+    });
+    chipsEl.appendChild(b);
+  }
 }
 
 async function render(): Promise<void> {
   const s = await getSettings();
   enabledEl.checked = s.enabled;
-  for (const k of boolKeys) boolEls[k].checked = s[k] as boolean;
-  for (const el of skipEls) el.checked = s.skip[el.dataset.skip as SkipType];
-  applyEnabledUI(s.enabled);
+  autoNextEl.checked = s.autoNext;
+  renderChips(s.skip);
+  applyEnabledUI(s.enabled, s.skip);
 }
 
-async function renderStats(): Promise<void> {
-  const s = await getStats();
-  const el = document.querySelector<HTMLSpanElement>('#stats')!;
-  el.textContent =
-    s.skips > 0
-      ? `${s.skips} skips · saved ${formatSaved(s.secondsSaved)}`
-      : 'No skips yet';
-}
+enabledEl.addEventListener('change', async () => {
+  await patchSettings({ enabled: enabledEl.checked });
+  await render();
+  void renderStatus();
+});
+autoNextEl.addEventListener('change', () =>
+  patchSettings({ autoNext: autoNextEl.checked }),
+);
 
+// ── Now Playing ─────────────────────────────────────────────────────
 async function renderStatus(): Promise<void> {
-  const titleEl = document.querySelector<HTMLDivElement>('#statusTitle')!;
-  const dotEl = document.querySelector<HTMLSpanElement>('#statusDot')!;
-  const subEl = document.querySelector<HTMLSpanElement>('#statusSub')!;
-  const thumbEl = document.querySelector<HTMLDivElement>('#statusThumb')!;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) {
-      hideMal();
-      return;
+      currentMeta = null;
+    } else {
+      const st = await chrome.tabs.sendMessage<ContentStatusRequest, TabStatusResponse>(
+        tab.id,
+        { type: 'GET_STATUS' },
+      );
+      currentMeta = st?.meta ?? null;
+      currentSegments = st?.segments ?? 0;
     }
-    // Ask the content script on the page directly — it always has live episode
-    // data, unlike the service worker's cache which is cleared when it sleeps.
-    const st = await chrome.tabs.sendMessage<ContentStatusRequest, TabStatusResponse>(
-      tab.id,
-      { type: 'GET_STATUS' },
-    );
-    if (!st?.meta) {
-      hideMal();
-      return;
-    }
+  } catch {
+    currentMeta = null;
+  }
+  renderNowPlaying();
+  void renderMal();
+}
 
-    const { series, season, episode, thumbnail } = st.meta;
-    const se = [season ? `S${season}` : null, episode ? `E${episode}` : null]
+function renderNowPlaying(): void {
+  const watching = !!currentMeta && enabledEl.checked;
+  npCard.classList.toggle('watching', watching);
+  if (watching && currentMeta) {
+    npTitle.textContent = currentMeta.series;
+    npTitle.title = currentMeta.series;
+    const se = [
+      currentMeta.season ? `S${currentMeta.season}` : null,
+      currentMeta.episode ? `E${currentMeta.episode}` : null,
+    ]
       .filter(Boolean)
       .join(' ');
-    titleEl.textContent = `Now watching${se ? ` · ${se}` : ''}`;
-    titleEl.title = series;
-    if (thumbnail) {
-      thumbEl.style.backgroundImage = `url("${thumbnail}")`;
-      thumbEl.style.backgroundSize = 'cover';
-      thumbEl.style.backgroundPosition = 'center';
-    }
-    if (st.segments > 0) {
-      dotEl.classList.remove('idle');
-      subEl.textContent = `Skip data found · ${st.segments} segment${
-        st.segments === 1 ? '' : 's'
+    const seSpan = document.createElement('span');
+    seSpan.className = 'se';
+    seSpan.textContent = se;
+    const rest = document.createTextNode(
+      currentMeta.episodeTitle ? ` · ${currentMeta.episodeTitle}` : '',
+    );
+    npSub.replaceChildren(seSpan, rest);
+    npThumb.style.backgroundImage = currentMeta.thumbnail
+      ? `url("${currentMeta.thumbnail}")`
+      : '';
+    npSkip.hidden = false;
+    if (currentSegments > 0) {
+      npSkipDot.classList.remove('none');
+      npSkipText.textContent = `Skip data found · ${currentSegments} segment${
+        currentSegments === 1 ? '' : 's'
       }`;
     } else {
-      dotEl.classList.add('idle');
-      subEl.textContent = 'No skip data for this episode';
+      npSkipDot.classList.add('none');
+      npSkipText.textContent = 'No skip data for this episode';
     }
-
-    currentMeta = st.meta;
-    void renderMalInfo(st.meta);
-  } catch {
-    // Not on a watch page / worker asleep — clear the MAL UI, keep the card idle.
-    hideMal();
+  } else {
+    npTitle.textContent = 'Not watching';
+    npTitle.removeAttribute('title');
+    npSub.textContent = 'Open a Crunchyroll episode and your controls appear here.';
+    npThumb.style.backgroundImage = '';
+    npSkip.hidden = true;
   }
 }
 
-// ── MyAnimeList status line (editable) ──────────────────────────────
-const malInfoEl = document.querySelector<HTMLDivElement>('#malInfo')!;
-const malEpEl = document.querySelector<HTMLInputElement>('#malEp')!;
-const malTotalEl = document.querySelector<HTMLSpanElement>('#malTotal')!;
-const malStatusSel = document.querySelector<HTMLSelectElement>('#malStatusSel')!;
-const malScoreSel = document.querySelector<HTMLSelectElement>('#malScoreSel')!;
-const malErrEl = document.querySelector<HTMLDivElement>('#malErr')!;
-const malRewatchEl = document.querySelector<HTMLDivElement>('#malRewatch')!;
-const malRewatchBtn = document.querySelector<HTMLButtonElement>('#malRewatchBtn')!;
-const malLink = document.querySelector<HTMLAnchorElement>('#malLink')!;
+// ── MAL card ────────────────────────────────────────────────────────
+function setStatusControl(value: string): void {
+  const opt = MAL_STATUS.find((o) => o.value === value) ?? MAL_STATUS[0];
+  statusLabel.textContent = opt.label;
+  statusDot.style.background = opt.dot;
+  for (const el of statusMenu.querySelectorAll<HTMLElement>('.dd-opt')) {
+    el.classList.toggle('sel', el.dataset.value === opt.value);
+  }
+}
 
-/** The show the popup is currently bound to (for edit writes). */
-let currentMeta: TrackerMeta | null = null;
-/** Total episodes for the current show (for "mark complete" / last-ep logic). */
-let malTotal: number | null = null;
+function setScoreControl(value: number): void {
+  scoreVal.textContent = value ? String(value) : '–';
+  scoreBtn.classList.toggle('has-score', !!value);
+  for (const el of scoreMenu.querySelectorAll<HTMLElement>('.score-cell')) {
+    el.classList.toggle('sel', Number(el.dataset.score) === value);
+  }
+}
 
 function applyMalResponse(r: MalStatusResponse | undefined): void {
-  if (!r?.ok) {
-    malInfoEl.hidden = true;
+  malErr.hidden = true;
+  malCard.classList.remove('loading');
+  if (!r?.connected) {
+    malCard.hidden = true;
+    malNote.hidden = true;
+    malSynced.hidden = true;
+    malNudge.hidden = false;
     return;
   }
+  malNudge.hidden = true;
+  malSynced.hidden = false;
+  if (!r.ok) {
+    malCard.hidden = true;
+    malNote.hidden = false;
+    malNote.textContent = "Couldn't match this show on MyAnimeList yet.";
+    return;
+  }
+  malNote.hidden = true;
+  malCard.hidden = false;
+
   malTotal = r.total ?? null;
-  malEpEl.value = String(r.watched ?? 0);
-  if (r.total) malEpEl.max = String(r.total);
-  malTotalEl.textContent = r.total ? `/ ${r.total}` : '';
-  malStatusSel.value = r.status ?? 'watching';
-  malScoreSel.value = r.score ? String(r.score) : '';
+  const watched = r.watched ?? 0;
+  epVal.textContent = String(watched);
+  epTotal.textContent = r.total ? `/${r.total}` : '';
+  epMinus.disabled = watched <= 0;
+  epPlus.disabled = malTotal != null && watched >= malTotal;
+  setStatusControl(r.status ?? 'watching');
+  setScoreControl(r.score ?? 0);
+  if (r.animeId) malLink.href = `https://myanimelist.net/anime/${r.animeId}`;
+  rewatchBtn.hidden = r.status !== 'completed';
+}
 
-  // Link to the show's MyAnimeList page.
-  if (r.animeId) {
-    malLink.href = `https://myanimelist.net/anime/${r.animeId}`;
-    malLink.hidden = false;
-  } else {
-    malLink.hidden = true;
+/**
+ * Show the real tracking card right away with placeholder values, so the
+ * component (rows, controls) is on screen immediately and only the episode /
+ * status / score values fill in once MAL responds. The `loading` class dims and
+ * disables the card so stale placeholders can't be clicked mid-load.
+ */
+function showMalLoading(): void {
+  malModule.hidden = false;
+  malSynced.hidden = true;
+  malNudge.hidden = true;
+  malNote.hidden = true;
+  malErr.hidden = true;
+  malCard.hidden = false;
+  malCard.classList.add('loading');
+  epVal.textContent = '–';
+  epTotal.textContent = '';
+  epMinus.disabled = true;
+  epPlus.disabled = true;
+  setStatusControl('watching');
+  setScoreControl(0);
+  rewatchBtn.hidden = true;
+}
+
+async function renderMal(): Promise<void> {
+  const watching = !!currentMeta && enabledEl.checked;
+  if (!watching || !currentMeta) {
+    malModule.hidden = true;
+    return;
   }
-
-  // Rewatch button on any completed show.
-  malRewatchBtn.hidden = r.status !== 'completed';
-
-  // Show the row only if it has something in it.
-  malRewatchEl.hidden = malLink.hidden && malRewatchBtn.hidden;
-
-  malErrEl.hidden = true;
-  malInfoEl.hidden = false;
-}
-
-/** Hide all MAL UI — used when nothing is playing / not connected. */
-function hideMal(): void {
-  currentMeta = null;
-  malInfoEl.hidden = true;
-  malRewatchEl.hidden = true;
-  malErrEl.hidden = true;
-}
-
-/** Show the signed-in user's MAL list entry for the current show, if connected. */
-async function renderMalInfo(meta: TrackerMeta): Promise<void> {
+  showMalLoading();
   try {
-    applyMalResponse(await requestMalStatus(meta));
+    applyMalResponse(await requestMalStatus(currentMeta));
   } catch {
-    malInfoEl.hidden = true;
+    applyMalResponse({ ok: false, connected: false });
   }
 }
 
-/** Push an edit to MAL, then re-render from the server's response. */
-async function saveMal(patch: {
-  num_watched_episodes?: number;
-  status?: string;
-  score?: number;
-  is_rewatching?: boolean;
-}): Promise<void> {
+async function saveMal(patch: MalPatch): Promise<void> {
   if (!currentMeta) return;
-  malErrEl.hidden = true;
-  malInfoEl.style.opacity = '0.5';
+  malErr.hidden = true;
+  malCard.style.opacity = '0.5';
   try {
     const r = await setMalStatus(currentMeta, patch);
     if (r?.ok) {
       applyMalResponse(r);
     } else {
-      malErrEl.textContent = r?.error ? `Couldn't save: ${r.error}` : "Couldn't save to MAL";
-      malErrEl.hidden = false;
-      console.warn('[Crunchy Tools] MAL save failed:', r?.error);
-      await renderMalInfo(currentMeta); // revert controls to the server's truth
+      malErr.textContent = r?.error ? `Couldn't save: ${r.error}` : "Couldn't save to MAL";
+      malErr.hidden = false;
+      await renderMal();
     }
-  } catch (e) {
-    malErrEl.textContent = "Couldn't reach MAL";
-    malErrEl.hidden = false;
-    console.warn('[Crunchy Tools] MAL save error:', e);
+  } catch {
+    malErr.textContent = "Couldn't reach MAL";
+    malErr.hidden = false;
   } finally {
-    malInfoEl.style.opacity = '1';
+    malCard.style.opacity = '1';
   }
 }
 
-malEpEl.addEventListener('change', () => {
-  const n = Math.max(0, Math.floor(Number(malEpEl.value) || 0));
-  const patch: { num_watched_episodes: number; status?: string } = {
-    num_watched_episodes: n,
-  };
-  // Reaching the final episode marks the show complete.
+// stepper
+epMinus.addEventListener('click', () => {
+  const cur = Number(epVal.textContent) || 0;
+  if (cur > 0) void saveMal({ num_watched_episodes: cur - 1 });
+});
+epPlus.addEventListener('click', () => {
+  const cur = Number(epVal.textContent) || 0;
+  const n = cur + 1;
+  const patch: MalPatch = { num_watched_episodes: n };
   if (malTotal && n >= malTotal) patch.status = 'completed';
   void saveMal(patch);
 });
-malStatusSel.addEventListener('change', () => {
-  const patch: { status: string; num_watched_episodes?: number } = {
-    status: malStatusSel.value,
-  };
-  // Marking complete implies every episode was watched.
-  if (malStatusSel.value === 'completed' && malTotal) {
-    patch.num_watched_episodes = malTotal;
-  }
-  void saveMal(patch);
-});
-malScoreSel.addEventListener('change', () =>
-  void saveMal({ score: malScoreSel.value ? Number(malScoreSel.value) : 0 }),
-);
 
-malRewatchBtn.addEventListener('click', () => {
-  malRewatchBtn.hidden = true; // hide immediately; the re-render confirms state
+// status dropdown (built once)
+for (const o of MAL_STATUS) {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'dd-opt';
+  b.dataset.value = o.value;
+  b.innerHTML =
+    `<span class="dd-dot" style="background:${o.dot}"></span>${o.label}` +
+    '<svg class="check" width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5 9-10" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  b.addEventListener('click', () => {
+    closeMenus();
+    const patch: MalPatch = { status: o.value };
+    if (o.value === 'completed' && malTotal) {
+      patch.num_watched_episodes = malTotal;
+    } else if (o.value === 'watching') {
+      // Switching to "Watching" should reflect the episode you're actually on
+      // now (e.g. coming back from "Completed"), not the stale count it carried
+      // over — mirror the Rewatch button. The episode comes from the CR page.
+      const ep = currentMeta?.episode;
+      if (ep && ep > 0) {
+        patch.num_watched_episodes = ep;
+        patch.is_rewatching = false; // a fresh watch, not a tracked rewatch
+      }
+    }
+    void saveMal(patch);
+  });
+  statusMenu.appendChild(b);
+}
+// hide the check on unselected via CSS-less approach: toggle visibility in setStatusControl
+statusMenu.querySelectorAll<HTMLElement>('.check').forEach((c) => (c.style.display = 'none'));
+
+// score picker (built once)
+const grid = document.createElement('div');
+grid.className = 'score-grid';
+for (let n = 1; n <= 10; n++) {
+  const c = document.createElement('button');
+  c.type = 'button';
+  c.className = 'score-cell';
+  c.dataset.score = String(n);
+  c.textContent = String(n);
+  c.addEventListener('click', () => {
+    closeMenus();
+    void saveMal({ score: n });
+  });
+  grid.appendChild(c);
+}
+const clearBtn = document.createElement('button');
+clearBtn.type = 'button';
+clearBtn.className = 'score-clear';
+clearBtn.textContent = 'Clear rating';
+clearBtn.addEventListener('click', () => {
+  closeMenus();
+  void saveMal({ score: 0 });
+});
+scoreMenu.append(grid, clearBtn);
+
+function closeMenus(): void {
+  statusDd.classList.remove('open');
+  statusMenu.hidden = true;
+  scoreDd.classList.remove('open');
+  scoreMenu.hidden = true;
+}
+function toggleMenu(dd: HTMLElement, menu: HTMLElement): void {
+  const willOpen = menu.hidden;
+  closeMenus();
+  if (willOpen) {
+    dd.classList.add('open');
+    menu.hidden = false;
+    // reflect selection check visibility
+    statusMenu.querySelectorAll<HTMLElement>('.dd-opt').forEach((el) => {
+      const chk = el.querySelector<HTMLElement>('.check');
+      if (chk) chk.style.display = el.classList.contains('sel') ? '' : 'none';
+    });
+  }
+}
+statusBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleMenu(statusDd, statusMenu);
+});
+scoreBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  toggleMenu(scoreDd, scoreMenu);
+});
+document.addEventListener('click', closeMenus);
+
+rewatchBtn.addEventListener('click', () => {
+  rewatchBtn.hidden = true;
   const ep = currentMeta?.episode;
-  // Flip to "watching" and restart progress at the current episode. Clear
-  // is_rewatching — MAL forces the status back to "completed" while it's set,
-  // which defeats the whole point.
   void saveMal({
     status: 'watching',
     is_rewatching: false,
@@ -221,31 +407,106 @@ malRewatchBtn.addEventListener('click', () => {
   });
 });
 
-enabledEl.addEventListener('change', async () => {
-  await patchSettings({ enabled: enabledEl.checked });
-  applyEnabledUI(enabledEl.checked);
-});
+malNudge.addEventListener('click', () => chrome.runtime.openOptionsPage());
 
-for (const k of boolKeys) {
-  boolEls[k].addEventListener('change', () =>
-    patchSettings({ [k]: boolEls[k].checked } as Partial<Settings>),
-  );
+// ── footer / stats ──────────────────────────────────────────────────
+async function renderStats(): Promise<void> {
+  const s = await getStats();
+  $('#stats').textContent =
+    s.skips > 0
+      ? `${s.skips} skips · ${formatSaved(s.secondsSaved)} saved`
+      : 'No skips yet';
 }
 
-for (const el of skipEls) {
-  el.addEventListener('change', async () => {
-    const current = (await getSettings()).skip;
-    await patchSettings({
-      skip: { ...current, [el.dataset.skip as SkipType]: el.checked },
-    });
-  });
+$('#open-options').addEventListener('click', () => chrome.runtime.openOptionsPage());
+
+// ── history ─────────────────────────────────────────────────────────
+const mainView = $('#mainView');
+const historyView = $('#historyView');
+const histListEl = $('#hist-list');
+
+function relTime(ts: number): string {
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return d < 7 ? `${d}d ago` : `${Math.floor(d / 7)}w ago`;
 }
 
-document.querySelector('#open-options')!.addEventListener('click', (e) => {
-  e.preventDefault();
-  chrome.runtime.openOptionsPage();
+async function openEpisode(url: string): Promise<void> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab?.id) {
+    await chrome.tabs.update(tab.id, { url });
+    window.close();
+  }
+}
+
+async function renderHistory(): Promise<void> {
+  const items = await getHistory();
+  histListEl.replaceChildren();
+  if (items.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'hist-empty';
+    empty.innerHTML =
+      '<div class="hist-empty-ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 7v5l3 2" stroke="var(--text-3)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="8.5" stroke="var(--text-3)" stroke-width="1.8"/></svg></div>';
+    const t = document.createElement('div');
+    t.textContent = 'Nothing yet — episodes you open will show up here.';
+    empty.appendChild(t);
+    histListEl.appendChild(empty);
+    return;
+  }
+  for (const it of items) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'hist-item';
+    row.title = it.series;
+
+    const thumb = document.createElement('div');
+    thumb.className = 'hist-thumb';
+    if (it.thumbnail) thumb.style.backgroundImage = `url("${it.thumbnail}")`;
+
+    const main = document.createElement('div');
+    main.className = 'hist-main';
+    const series = document.createElement('div');
+    series.className = 'hist-series';
+    series.textContent = it.series;
+    const sub = document.createElement('div');
+    sub.className = 'hist-sub';
+    const seSpan = document.createElement('span');
+    seSpan.className = 'se';
+    seSpan.textContent = [it.season ? `S${it.season}` : null, it.episode ? `E${it.episode}` : null]
+      .filter(Boolean)
+      .join(' ');
+    sub.append(seSpan, document.createTextNode(it.episodeTitle ? ` · ${it.episodeTitle}` : ''));
+    main.append(series, sub);
+
+    const time = document.createElement('span');
+    time.className = 'hist-time';
+    time.textContent = relTime(it.updatedAt);
+
+    row.append(thumb, main, time);
+    row.addEventListener('click', () => void openEpisode(it.url));
+    histListEl.appendChild(row);
+  }
+}
+
+$('#open-history').addEventListener('click', () => {
+  mainView.hidden = true;
+  historyView.hidden = false;
+  void renderHistory();
+});
+$('#hist-back').addEventListener('click', () => {
+  historyView.hidden = true;
+  mainView.hidden = false;
+});
+$('#hist-clear').addEventListener('click', async () => {
+  await clearHistory();
+  await renderHistory();
 });
 
+// ── boot ────────────────────────────────────────────────────────────
 void render();
 void renderStats();
 void renderStatus();

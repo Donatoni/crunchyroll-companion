@@ -164,6 +164,91 @@
       <div class="hist-list" id="hist-list"></div>
     </div>
 
+    <div id="settingsView" hidden>
+      <div class="hist-bar">
+        <button type="button" class="hist-back" id="set-back" aria-label="Back">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+        <span class="hist-title">Settings</span>
+      </div>
+      <div class="set-scroll">
+        <!-- Skip method -->
+        <div class="set-section">
+          <div class="module-label">Skip method</div>
+          <label class="set-radio">
+            <input type="radio" name="set-mode" value="seek" />
+            <span class="set-radio-dot"></span>
+            <span class="set-radio-main">
+              <span class="set-radio-title">Smart seek</span>
+              <span class="set-radio-desc">Jumps instantly using Crunchyroll's skip timings; falls back to the native button.</span>
+            </span>
+          </label>
+          <label class="set-radio">
+            <input type="radio" name="set-mode" value="click" />
+            <span class="set-radio-dot"></span>
+            <span class="set-radio-main">
+              <span class="set-radio-title">Click native button</span>
+              <span class="set-radio-desc">Only clicks Crunchyroll's own Skip button when it appears.</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- Playback -->
+        <div class="set-section">
+          <div class="module-label">Playback</div>
+          <div class="set-row">
+            <div class="set-row-main">
+              <div class="set-row-title">Keep watching</div>
+              <div class="set-row-desc">Dismiss "still watching?" prompts during long sessions.</div>
+            </div>
+            <label class="switch sm"><input type="checkbox" id="set-keepWatching" /><span class="slider"></span></label>
+          </div>
+          <div class="set-row">
+            <div class="set-row-main">
+              <div class="set-row-title">Show undo toast</div>
+              <div class="set-row-desc">A brief "Skipped intro — Undo" after each skip.</div>
+            </div>
+            <label class="switch sm"><input type="checkbox" id="set-showToast" /><span class="slider"></span></label>
+          </div>
+        </div>
+
+        <!-- MyAnimeList -->
+        <div class="set-section">
+          <div class="module-label">MyAnimeList</div>
+          <div class="set-mal">
+            <span class="set-mal-badge">MAL</span>
+            <div class="set-mal-main">
+              <div class="set-mal-title" id="set-mal-status">Not connected</div>
+              <div class="set-mal-sub">Sign in once on MyAnimeList.</div>
+            </div>
+            <button type="button" class="set-btn" id="set-connect">Connect</button>
+            <button type="button" class="set-btn ghost" id="set-disconnect" hidden>Disconnect</button>
+          </div>
+          <div class="set-row">
+            <div class="set-row-main">
+              <div class="set-row-title">Sync watched episodes</div>
+              <div class="set-row-desc">Keep MAL on the episode you're watching.</div>
+            </div>
+            <label class="switch sm"><input type="checkbox" id="set-malEnabled" /><span class="slider"></span></label>
+          </div>
+          <div id="set-mappings-wrap" hidden>
+            <div class="set-sub-label">Show → MAL matches</div>
+            <div id="set-mappings"></div>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="set-section">
+          <div class="module-label">About</div>
+          <div class="set-about">Crunchy Tools · v0.1.0 · MIT</div>
+          <div class="set-links">
+            <a class="set-link" href="https://github.com/Donatoni/crunchy-tools/issues" target="_blank" rel="noopener">Report an issue</a>
+            <a class="set-link" href="https://github.com/Donatoni/crunchy-tools" target="_blank" rel="noopener">Source</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="./popup.ts"></script>
   </body>
 </html>

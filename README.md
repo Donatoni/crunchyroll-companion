@@ -145,12 +145,6 @@ options page.
   shows skip-events fetches, any `404`s (normal for episodes with no published
   data), and `watched: …` lines tracing each MyAnimeList sync.
 
-## Roadmap
-
-Possible future additions on the same architecture: remembered volume, playback
-speed and keyboard shortcuts, Picture-in-Picture, default audio/subtitle/quality
-selection, and AniList sync.
-
 ## License
 
 MIT

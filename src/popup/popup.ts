@@ -1,6 +1,6 @@
-import { getSettings, patchSettings } from '@/shared/settings';
+import { getSettings, patchSettings, type SkipMode } from '@/shared/settings';
 import type { SkipType, TrackerMeta } from '@/shared/types';
-import { requestMalStatus, setMalStatus } from '@/shared/messages';
+import { requestMalStatus, setMalStatus, startMalAuth } from '@/shared/messages';
 import type {
   ContentStatusRequest,
   MalStatusResponse,
@@ -8,6 +8,14 @@ import type {
 } from '@/shared/messages';
 import { formatSaved, getStats } from '@/shared/stats';
 import { clearHistory, getHistory, removeHistory } from '@/shared/history';
+import {
+  clearToken,
+  getMappings,
+  getTokenData,
+  removeMapping,
+  setMapping,
+} from '@/shared/tracker-store';
+import { getUserName } from '@/shared/mal';
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
@@ -407,7 +415,7 @@ rewatchBtn.addEventListener('click', () => {
   });
 });
 
-malNudge.addEventListener('click', () => chrome.runtime.openOptionsPage());
+malNudge.addEventListener('click', () => openSettings());
 
 // ── footer / stats ──────────────────────────────────────────────────
 async function renderStats(): Promise<void> {
@@ -418,7 +426,132 @@ async function renderStats(): Promise<void> {
       : 'No skips yet';
 }
 
-$('#open-options').addEventListener('click', () => chrome.runtime.openOptionsPage());
+// ── settings (in-popup modal) ───────────────────────────────────────
+const settingsView = $('#settingsView');
+const setKeepWatching = $<HTMLInputElement>('#set-keepWatching');
+const setShowToast = $<HTMLInputElement>('#set-showToast');
+const setMalStatusEl = $('#set-mal-status');
+const setConnectBtn = $<HTMLButtonElement>('#set-connect');
+const setDisconnectBtn = $<HTMLButtonElement>('#set-disconnect');
+const setMalEnabled = $<HTMLInputElement>('#set-malEnabled');
+const setMappingsWrap = $('#set-mappings-wrap');
+const setMappingsEl = $('#set-mappings');
+const modeRadios = Array.from(
+  document.querySelectorAll<HTMLInputElement>('input[name="set-mode"]'),
+);
+
+async function renderMalSettings(): Promise<void> {
+  setMalEnabled.checked = (await getSettings()).mal.enabled;
+  const token = await getTokenData();
+  if (token) {
+    setConnectBtn.hidden = true;
+    setDisconnectBtn.hidden = false;
+    setMalStatusEl.textContent = 'Connected';
+    getUserName(token.access)
+      .then((name) => (setMalStatusEl.textContent = `Connected as ${name}`))
+      .catch(() => {});
+  } else {
+    setConnectBtn.hidden = false;
+    setDisconnectBtn.hidden = true;
+    setMalStatusEl.textContent = 'Not connected';
+  }
+
+  const entries = Object.entries(await getMappings());
+  setMappingsWrap.hidden = entries.length === 0;
+  setMappingsEl.replaceChildren();
+  for (const [key, m] of entries) {
+    const row = document.createElement('div');
+    row.className = 'set-map-row';
+
+    const title = document.createElement('span');
+    title.className = 'set-map-title';
+    title.textContent = m.title;
+    title.title = m.title;
+
+    const id = document.createElement('input');
+    id.type = 'text';
+    id.className = 'set-map-id';
+    id.value = String(m.mediaId);
+    id.title = 'MyAnimeList anime ID';
+    id.addEventListener('change', async () => {
+      const n = Number(id.value);
+      // Pin manual corrections so the auto-resolver never overrides them.
+      if (Number.isInteger(n) && n > 0) await setMapping(key, { ...m, mediaId: n, pinned: true });
+    });
+
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'set-map-del';
+    del.title = 'Remove match';
+    del.setAttribute('aria-label', `Remove ${m.title} match`);
+    del.innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    del.addEventListener('click', async () => {
+      await removeMapping(key);
+      await renderMalSettings();
+    });
+
+    row.append(title, id, del);
+    setMappingsEl.appendChild(row);
+  }
+}
+
+async function renderSettings(): Promise<void> {
+  const s = await getSettings();
+  setKeepWatching.checked = s.keepWatching;
+  setShowToast.checked = s.showToast;
+  for (const r of modeRadios) r.checked = r.value === s.mode;
+  await renderMalSettings();
+}
+
+function openSettings(): void {
+  mainView.hidden = true;
+  historyView.hidden = true;
+  settingsView.hidden = false;
+  void renderSettings();
+}
+
+setKeepWatching.addEventListener('change', () =>
+  patchSettings({ keepWatching: setKeepWatching.checked }),
+);
+setShowToast.addEventListener('change', () =>
+  patchSettings({ showToast: setShowToast.checked }),
+);
+for (const r of modeRadios) {
+  r.addEventListener('change', () => {
+    if (r.checked) void patchSettings({ mode: r.value as SkipMode });
+  });
+}
+setMalEnabled.addEventListener('change', async () => {
+  const s = await getSettings();
+  await patchSettings({ mal: { ...s.mal, enabled: setMalEnabled.checked } });
+});
+setConnectBtn.addEventListener('click', async () => {
+  setConnectBtn.disabled = true;
+  setMalStatusEl.textContent = 'Connecting…';
+  try {
+    const r = await startMalAuth();
+    if (!r.ok) setMalStatusEl.textContent = `Connect failed: ${r.error ?? 'error'}`;
+  } catch {
+    // The popup can close when the auth window steals focus; the worker still
+    // finishes and saves the token, so reopening will show "Connected".
+  } finally {
+    setConnectBtn.disabled = false;
+    await renderMalSettings();
+  }
+});
+setDisconnectBtn.addEventListener('click', async () => {
+  await clearToken();
+  await renderMalSettings();
+});
+
+$('#open-options').addEventListener('click', openSettings);
+$('#set-back').addEventListener('click', () => {
+  settingsView.hidden = true;
+  mainView.hidden = false;
+  void render();
+  void renderStatus();
+});
 
 // ── history ─────────────────────────────────────────────────────────
 const mainView = $('#mainView');

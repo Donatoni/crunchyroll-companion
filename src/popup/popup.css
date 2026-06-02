@@ -38,7 +38,8 @@ body {
 }
 .header { flex: 0 0 auto; }
 #mainView:not([hidden]),
-#historyView:not([hidden]) {
+#historyView:not([hidden]),
+#settingsView:not([hidden]) {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -375,3 +376,77 @@ body {
 }
 
 .mal-err { text-align: center; font: 500 10.5px var(--mono); color: #ff6b6b; padding: 8px 14px 0; }
+
+/* ── Settings view ─────────────────────────────────────────────────── */
+.set-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 4px 18px 18px; }
+.set-section { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.set-section:last-child { border-bottom: none; }
+.set-section .module-label { display: block; margin-bottom: 12px; }
+
+.set-row { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.set-row-main { flex: 1; min-width: 0; }
+.set-row-title { font-size: 13px; font-weight: 500; color: var(--text); }
+.set-row-desc { font-size: 11px; color: var(--text-3); margin-top: 2px; line-height: 1.4; }
+
+.set-radio {
+  position: relative; display: flex; gap: 10px; padding: 11px 12px; margin-bottom: 8px;
+  border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2);
+  cursor: pointer; transition: border-color 0.15s, background 0.15s;
+}
+.set-radio input { position: absolute; opacity: 0; width: 0; height: 0; }
+.set-radio-dot {
+  flex: 0 0 auto; width: 16px; height: 16px; margin-top: 1px; border-radius: 50%;
+  border: 1.5px solid var(--line-strong); display: grid; place-items: center;
+  transition: border-color 0.15s;
+}
+.set-radio input:checked ~ .set-radio-dot { border-color: var(--accent); }
+.set-radio input:checked ~ .set-radio-dot::after {
+  content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+}
+.set-radio:has(input:checked) { border-color: rgba(244, 117, 33, 0.5); background: var(--accent-dim); }
+.set-radio-main { display: flex; flex-direction: column; gap: 2px; }
+.set-radio-title { font-size: 13px; font-weight: 600; color: var(--text); }
+.set-radio-desc { font-size: 11px; color: var(--text-3); line-height: 1.4; }
+
+.set-mal {
+  display: flex; align-items: center; gap: 11px; padding: 12px; margin-bottom: 10px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2);
+}
+.set-mal-badge {
+  width: 36px; height: 36px; flex: 0 0 auto; border-radius: 9px; display: grid;
+  place-items: center; background: #2e51a2; color: #fff; font-weight: 700; font-size: 12px;
+}
+.set-mal-main { flex: 1; min-width: 0; }
+.set-mal-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-mal-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.set-btn {
+  flex: 0 0 auto; padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap;
+  border: 1px solid rgba(46, 81, 162, 0.55); background: rgba(46, 81, 162, 0.18);
+  color: #8aa6ff; font: 600 12px var(--sans);
+}
+.set-btn:hover { background: rgba(46, 81, 162, 0.28); }
+.set-btn:disabled { opacity: 0.6; cursor: default; }
+.set-btn.ghost { border-color: var(--line-strong); background: transparent; color: var(--text-2); }
+.set-btn.ghost:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+
+.set-sub-label { font-size: 11px; color: var(--text-3); margin: 14px 0 8px; font-weight: 500; }
+.set-map-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.set-map-title { flex: 1; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-map-id {
+  width: 76px; flex: 0 0 auto; padding: 5px 8px; border-radius: 7px; border: 1px solid var(--line);
+  background: var(--surface-3); color: var(--text); font: 500 12px var(--mono);
+}
+.set-map-del {
+  flex: 0 0 auto; width: 26px; height: 26px; display: grid; place-items: center; border: none;
+  background: transparent; color: var(--text-3); cursor: pointer; border-radius: 7px;
+}
+.set-map-del:hover { background: rgba(255, 255, 255, 0.08); color: var(--accent); }
+
+.set-about { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-bottom: 12px; }
+.set-links { display: flex; gap: 8px; }
+.set-link {
+  flex: 1; text-align: center; padding: 8px 10px; border-radius: 9px; text-decoration: none;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--text-2);
+  font: 500 12px var(--sans);
+}
+.set-link:hover { background: var(--surface-3); color: var(--text); border-color: var(--line-strong); }

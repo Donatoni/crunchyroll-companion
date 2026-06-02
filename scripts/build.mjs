@@ -39,7 +39,7 @@ const common = {
 await Promise.all([
   build({ ...common, entryPoints: [r('src/content/index.ts')], outfile: r('dist/content.js') }),
   build({ ...common, entryPoints: [r('src/background/service-worker.ts')], outfile: r('dist/service-worker.js') }),
-  build({ ...common, entryPoints: [r('src/popup/popup.ts')], outfile: r('dist/popup.js') }),
+  build({ ...common, entryPoints: [r('src/sidepanel/sidepanel.ts')], outfile: r('dist/sidepanel.js') }),
   build({ ...common, entryPoints: [r('src/options/options.ts')], outfile: r('dist/options.js') }),
 ]);
 
@@ -52,7 +52,7 @@ async function emitHtml(name) {
   await writeFile(r(`dist/${name}.html`), html);
   await cp(r(`src/${name}/${name}.css`), r(`dist/${name}.css`));
 }
-await emitHtml('popup');
+await emitHtml('sidepanel');
 await emitHtml('options');
 
 // Icons.
@@ -73,10 +73,10 @@ const manifest = {
   key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuEHac8FPd0IUBTpyyrong2jvFYkV9X3Nk02Rv4VWRXoGGlpzMPWlExTntIQpjhNB8qXMpvureGfoBh2ibEYrclcEFJzwBOHcAjBs6N7UNhjw9YDRxwiQqnkbeeEXsNbBsuTzOLzqdy2BJEK35vsXHLpf2keHMFHuI0ztjmjLAatMmsZl6OT4JD0/xaBF7ShwAE42Ljlujw3TB42kkjoegc1p9q+IgZ/Bl3uDpz1FChWAQwSFjZISZv8mGjHdH8Jz27/wz5FtfmEG8eZBIOOEJQw52k1Q/QVbusKRfQaqT/65Wn+odwm6RyWdpzsqxFZWKS1xpPW6uhUduW2F/vVjdwIDAQAB',
   icons: { 16: 'icons/icon-16.png', 48: 'icons/icon-48.png', 128: 'icons/icon-128.png' },
   action: {
-    default_popup: 'popup.html',
     default_title: 'Crunchy Tools',
     default_icon: { 16: 'icons/icon-16.png', 48: 'icons/icon-48.png', 128: 'icons/icon-128.png' },
   },
+  side_panel: { default_path: 'sidepanel.html' },
   options_page: 'options.html',
   background: { service_worker: 'service-worker.js' },
   content_scripts: [
@@ -87,12 +87,13 @@ const manifest = {
       all_frames: true,
     },
   ],
-  permissions: ['storage', 'identity'],
+  permissions: ['storage', 'identity', 'sidePanel'],
   host_permissions: [
     '*://*.crunchyroll.com/*',
     '*://static.crunchyroll.com/*',
     'https://myanimelist.net/*',
     'https://api.myanimelist.net/*',
+    'https://api.jikan.moe/*',
   ],
 };
 await writeFile(r('dist/manifest.json'), JSON.stringify(manifest, null, 2));

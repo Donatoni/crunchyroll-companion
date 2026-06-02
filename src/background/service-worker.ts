@@ -18,7 +18,9 @@ import {
 import {
   authorizeUrl,
   exchangeCode,
+  getAnimeDetails,
   getAnimeStatus,
+  getCharacters,
   getUserName,
   randomVerifier,
   refresh,
@@ -26,11 +28,16 @@ import {
   setMyListStatus,
 } from '@/shared/mal';
 
-/** Seed defaults on install so the popup/options never render an empty state. */
+/** Seed defaults on install so the panel/options never render an empty state. */
 chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.sync.get('settings');
   if (!current.settings) await saveSettings(DEFAULT_SETTINGS);
 });
+
+// Open the side panel when the toolbar icon is clicked (replaces the popup).
+chrome.sidePanel
+  ?.setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((err) => console.warn('[Crunchy Tools] side panel setup failed:', err));
 
 // ---- skip-events fetch (avoids content-script CORS) -------------------------
 
@@ -206,7 +213,7 @@ function matchScore(
 
 /** Resolve (and cache) the MAL anime for a CR series+season. */
 async function resolveMapping(
-  access: string,
+  access: string | null,
   meta: TrackerMeta,
 ): Promise<TrackerMapping | null> {
   const key = seriesKey(meta);
@@ -354,25 +361,40 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
     case 'GET_MAL_STATUS': {
       const meta = message.meta;
       (async () => {
+        // No token still resolves PUBLIC show details (client-id) — only the
+        // user's list entry needs sign-in.
         const access = await validAccessToken();
-        if (!access) return sendResponse({ ok: false, connected: false });
         const mapping = await resolveMapping(access, meta);
-        if (!mapping) return sendResponse({ ok: false, connected: true });
-        const s = await getAnimeStatus(access, mapping.mediaId);
+        if (!mapping) return sendResponse({ ok: false, connected: !!access });
+        const d = await getAnimeDetails(access, mapping.mediaId);
         sendResponse({
           ok: true,
-          connected: true,
-          title: mapping.title,
+          connected: !!access,
+          title: d.title || mapping.title,
           animeId: mapping.mediaId,
-          total: s.total,
-          watched: s.watched,
-          status: s.status,
-          score: s.score,
-          mean: s.mean,
-          rewatching: s.rewatching,
-          rewatchCount: s.rewatchCount,
+          total: d.total,
+          watched: d.watched,
+          status: d.status,
+          score: d.score,
+          mean: d.mean,
+          rewatching: d.rewatching,
+          rewatchCount: d.rewatchCount,
+          synopsis: d.synopsis,
+          picture: d.picture,
+          genres: d.genres,
+          rank: d.rank,
+          mediaType: d.mediaType,
+          year: d.year,
+          studios: d.studios,
+          related: d.related,
         });
       })().catch(() => sendResponse({ ok: false }));
+      return true; // async response
+    }
+    case 'GET_MAL_CHARACTERS': {
+      getCharacters(message.animeId)
+        .then((characters) => sendResponse({ ok: true, characters }))
+        .catch(() => sendResponse({ ok: false, characters: [] }));
       return true; // async response
     }
     case 'SET_MAL_STATUS': {

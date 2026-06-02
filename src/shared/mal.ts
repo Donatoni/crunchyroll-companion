@@ -12,6 +12,18 @@ const AUTHORIZE = 'https://myanimelist.net/v1/oauth2/authorize';
 const TOKEN = 'https://myanimelist.net/v1/oauth2/token';
 const API = 'https://api.myanimelist.net/v2';
 
+/**
+ * Auth header for a MAL API call. With a user access token we send a Bearer
+ * token (gives access to the user's list); without one we fall back to the
+ * `X-MAL-CLIENT-ID` header, which MAL accepts for PUBLIC data (search + anime
+ * details) — so we can show show info even when the user isn't signed in.
+ */
+function authHeaders(access: string | null): Record<string, string> {
+  return access
+    ? { Authorization: `Bearer ${access}` }
+    : { 'X-MAL-CLIENT-ID': MAL_CLIENT_ID };
+}
+
 export interface MalToken {
   access: string;
   refresh: string;
@@ -113,10 +125,10 @@ interface MalAnimeNode {
   alternative_titles?: { en?: string; ja?: string; synonyms?: string[] };
 }
 
-export async function searchAnime(access: string, q: string): Promise<MalAnime[]> {
+export async function searchAnime(access: string | null, q: string): Promise<MalAnime[]> {
   const res = await fetch(
     `${API}/anime?q=${encodeURIComponent(q)}&limit=10&fields=num_episodes,media_type,alternative_titles`,
-    { headers: { Authorization: `Bearer ${access}` } },
+    { headers: authHeaders(access) },
   );
   if (!res.ok) throw new Error(`MAL search HTTP ${res.status}`);
   const j = await res.json();
@@ -171,6 +183,105 @@ export async function getAnimeStatus(
     rewatching: !!m?.is_rewatching,
     rewatchCount: m?.num_times_rewatched ?? 0,
   };
+}
+
+export interface MalRelated {
+  id: number;
+  title: string;
+  picture: string | null;
+  mediaType: string | null;
+  episodes: number | null;
+  relation: string;
+}
+
+export interface MalCharacter {
+  name: string;
+  image: string | null;
+  role: string;
+}
+
+export interface MalDetails extends MalStatus {
+  title: string;
+  synopsis: string;
+  /** Poster image (MAL main_picture). */
+  picture: string | null;
+  genres: string[];
+  rank: number | null;
+  mediaType: string | null;
+  year: number | null;
+  studios: string[];
+  related: MalRelated[];
+}
+
+/**
+ * Fetch rich show details (and the user's list entry, if signed in) in one call.
+ * Works without a token via the client-id header — the `my_list_status` field is
+ * only requested when there's a user token (it's meaningless otherwise).
+ */
+export async function getAnimeDetails(
+  access: string | null,
+  animeId: number,
+): Promise<MalDetails> {
+  const fields =
+    'title,synopsis,main_picture,genres,mean,rank,num_episodes,media_type,start_season,studios,' +
+    'related_anime{media_type,num_episodes,main_picture}' +
+    (access ? ',my_list_status{status,score,num_episodes_watched,is_rewatching,num_times_rewatched}' : '');
+  const res = await fetch(`${API}/anime/${animeId}?fields=${fields}`, {
+    headers: authHeaders(access),
+    cache: 'no-store',
+  });
+  if (!res.ok) throw new Error(`MAL HTTP ${res.status}`);
+  const j = await res.json();
+  const m = j.my_list_status;
+  return {
+    title: j.title ?? '',
+    synopsis: j.synopsis ?? '',
+    picture: j.main_picture?.large ?? j.main_picture?.medium ?? null,
+    genres: (j.genres ?? []).map((g: { name: string }) => g.name),
+    mean: j.mean ?? null,
+    rank: j.rank ?? null,
+    total: j.num_episodes || null,
+    mediaType: j.media_type ?? null,
+    year: j.start_season?.year ?? null,
+    studios: (j.studios ?? []).map((s: { name: string }) => s.name),
+    related: (j.related_anime ?? []).map(
+      (r: {
+        node: { id: number; title: string; main_picture?: { medium?: string }; media_type?: string; num_episodes?: number };
+        relation_type_formatted?: string;
+        relation_type?: string;
+      }) => ({
+        id: r.node.id,
+        title: r.node.title,
+        picture: r.node.main_picture?.medium ?? null,
+        mediaType: r.node.media_type ?? null,
+        episodes: r.node.num_episodes || null,
+        relation: r.relation_type_formatted ?? r.relation_type ?? '',
+      }),
+    ),
+    status: m?.status ?? null,
+    score: m?.score || null,
+    watched: m?.num_episodes_watched ?? 0,
+    rewatching: !!m?.is_rewatching,
+    rewatchCount: m?.num_times_rewatched ?? 0,
+  };
+}
+
+/**
+ * Characters for an anime via the unofficial Jikan API (MAL's own v2 API has no
+ * character endpoint). Jikan keys by MAL id, so the same id works. Best-effort —
+ * callers should tolerate this throwing / returning [].
+ */
+export async function getCharacters(animeId: number): Promise<MalCharacter[]> {
+  const res = await fetch(`https://api.jikan.moe/v4/anime/${animeId}/characters`);
+  if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
+  const j = await res.json();
+  return (j.data ?? [])
+    .slice(0, 14)
+    .map((d: { character?: { name?: string; images?: { jpg?: { image_url?: string } } }; role?: string }) => ({
+      name: d.character?.name ?? '',
+      image: d.character?.images?.jpg?.image_url ?? null,
+      role: d.role ?? '',
+    }));
 }
 
 export interface MalListPatch {

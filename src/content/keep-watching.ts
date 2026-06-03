@@ -9,7 +9,7 @@ import { log } from '@/shared/log';
  * "keep watching"-style button, or — when a profile-picker heading is on screen
  * — the first profile tile. It never touches password fields or types anything.
  * Crunchyroll's markup is undocumented, so the matchers are broad-by-text and
- * may need tuning; everything is logged under "[Crunchy Tools]".
+ * may need tuning; everything is logged under "[Crunchy Companion]".
  */
 
 // Specific phrases unlikely to appear on a normal watch page (avoids clicking

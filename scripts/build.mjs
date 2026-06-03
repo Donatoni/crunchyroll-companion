@@ -64,7 +64,7 @@ for (const size of [16, 48, 128]) {
 // Manifest (MV3, Chrome/Edge).
 const manifest = {
   manifest_version: 3,
-  name: 'Crunchy Tools',
+  name: 'Crunchy Companion',
   description:
     'Auto-skip intro/outro/recap/preview and auto-play next episode on Crunchyroll.',
   version: '0.1.0',
@@ -73,7 +73,7 @@ const manifest = {
   key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuEHac8FPd0IUBTpyyrong2jvFYkV9X3Nk02Rv4VWRXoGGlpzMPWlExTntIQpjhNB8qXMpvureGfoBh2ibEYrclcEFJzwBOHcAjBs6N7UNhjw9YDRxwiQqnkbeeEXsNbBsuTzOLzqdy2BJEK35vsXHLpf2keHMFHuI0ztjmjLAatMmsZl6OT4JD0/xaBF7ShwAE42Ljlujw3TB42kkjoegc1p9q+IgZ/Bl3uDpz1FChWAQwSFjZISZv8mGjHdH8Jz27/wz5FtfmEG8eZBIOOEJQw52k1Q/QVbusKRfQaqT/65Wn+odwm6RyWdpzsqxFZWKS1xpPW6uhUduW2F/vVjdwIDAQAB',
   icons: { 16: 'icons/icon-16.png', 48: 'icons/icon-48.png', 128: 'icons/icon-128.png' },
   action: {
-    default_title: 'Crunchy Tools',
+    default_title: 'Crunchy Companion',
     default_icon: { 16: 'icons/icon-16.png', 48: 'icons/icon-48.png', 128: 'icons/icon-128.png' },
   },
   side_panel: { default_path: 'sidepanel.html' },

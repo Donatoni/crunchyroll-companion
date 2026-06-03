@@ -30,7 +30,7 @@ let patched = false;
 function patchHistory(onChange: () => void): void {
   if (patched) return;
   patched = true;
-  const fire = () => window.dispatchEvent(new Event('crunchy-tools:locationchange'));
+  const fire = () => window.dispatchEvent(new Event('crunchy-companion:locationchange'));
   for (const method of ['pushState', 'replaceState'] as const) {
     const original = history[method];
     history[method] = function (this: History, ...args: Parameters<typeof original>) {
@@ -39,7 +39,7 @@ function patchHistory(onChange: () => void): void {
       return result;
     };
   }
-  window.addEventListener('crunchy-tools:locationchange', onChange);
+  window.addEventListener('crunchy-companion:locationchange', onChange);
 }
 
 /**
@@ -69,7 +69,7 @@ export function onEpisodeChange(handler: Handler): () => void {
 
   return () => {
     window.removeEventListener('popstate', check);
-    window.removeEventListener('crunchy-tools:locationchange', check);
+    window.removeEventListener('crunchy-companion:locationchange', check);
     window.clearInterval(pollId);
   };
 }

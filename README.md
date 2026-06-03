@@ -1,4 +1,4 @@
-# Crunchy Tools
+# Crunchy Companion
 
 An all-in-one enhancement extension for [Crunchyroll](https://www.crunchyroll.com)
 (Chrome / Edge, Manifest V3). Version **0.1.0**.
@@ -9,14 +9,14 @@ a live show companion while you watch, and a home dashboard everywhere else.
 <table>
   <tr>
     <td width="50%" valign="top">
-      <img src="img/on-site.png" alt="Crunchy Tools side panel next to a Crunchyroll episode" />
+      <img src="img/on-site.png" alt="Crunchy Companion side panel next to a Crunchyroll episode" />
       <br />
       <sub><b>On Crunchyroll</b> — the live show panel: now-playing hero, MyAnimeList
       sync, your episode/status/score, plus the show's synopsis, seasons, characters
       and reviews.</sub>
     </td>
     <td width="50%" valign="top">
-      <img src="img/off-site.png" alt="Crunchy Tools home dashboard next to another site" />
+      <img src="img/off-site.png" alt="Crunchy Companion home dashboard next to another site" />
       <br />
       <sub><b>Anywhere else</b> — the home dashboard: your skip stats and activity,
       a Resume card, Continue-watching, your MyAnimeList "watching" list, and what's
@@ -25,13 +25,13 @@ a live show companion while you watch, and a home dashboard everywhere else.
   </tr>
   <tr>
     <td width="50%" valign="top">
-      <img src="img/settings.png" alt="Crunchy Tools settings panel" />
+      <img src="img/settings.png" alt="Crunchy Companion settings panel" />
       <br />
       <sub><b>Settings</b> — skip method, per-segment auto-skip toggles, playback
       options, and your MyAnimeList connection — all inline in the panel.</sub>
     </td>
     <td width="50%" valign="top">
-      <img src="img/recent.png" alt="Crunchy Tools recent / continue-watching panel" />
+      <img src="img/recent.png" alt="Crunchy Companion recent / continue-watching panel" />
       <br />
       <sub><b>Continue watching</b> — your recently opened episodes, with one-click
       resume and per-entry remove.</sub>

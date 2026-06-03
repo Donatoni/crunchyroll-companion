@@ -22,6 +22,8 @@ import {
   getAnimeStatus,
   getCharacters,
   getReviews,
+  getSeasonal,
+  getUserList,
   getUserName,
   randomVerifier,
   refresh,
@@ -402,6 +404,21 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
       getReviews(message.animeId)
         .then(({ reviews, allUrl }) => sendResponse({ ok: true, reviews, allUrl }))
         .catch(() => sendResponse({ ok: false, reviews: [] }));
+      return true; // async response
+    }
+    case 'GET_MY_LIST': {
+      (async () => {
+        const access = await validAccessToken();
+        if (!access) return sendResponse({ ok: false, connected: false, items: [] });
+        const items = await getUserList(access, message.status).catch(() => []);
+        sendResponse({ ok: true, connected: true, items });
+      })().catch(() => sendResponse({ ok: false, connected: false, items: [] }));
+      return true; // async response
+    }
+    case 'GET_SEASONAL': {
+      getSeasonal()
+        .then((items) => sendResponse({ ok: true, items }))
+        .catch(() => sendResponse({ ok: false, items: [] }));
       return true; // async response
     }
     case 'SET_MAL_STATUS': {

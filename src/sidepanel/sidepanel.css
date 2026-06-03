@@ -181,12 +181,42 @@ body {
 .chip.on { border-color: rgba(244,117,33,0.5); background: var(--accent-dim); color: var(--accent-bright); }
 .chip svg { width: 12px; height: 12px; }
 
-/* ── idle ── */
-.idle-hero { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 46px 30px 30px; }
-.idle-ic { width: 60px; height: 60px; border-radius: 18px; display: grid; place-items: center; background: var(--accent-dim); border: 1px solid rgba(244,117,33,0.3); margin-bottom: 16px; }
-.idle-title { font-size: 17px; font-weight: 700; }
-.idle-sub { font-size: 12.5px; color: var(--text-3); line-height: 1.6; margin-top: 8px; max-width: 260px; }
-.idle-btn { margin-top: 18px; padding: 10px 18px; border-radius: 10px; background: linear-gradient(180deg, #ff8f47, #f0680f); color: #1a0d03; font: 700 13px var(--sans); text-decoration: none; box-shadow: 0 4px 14px rgba(244,117,33,0.35); }
+/* ── home dashboard — concept C "Your run" ── */
+.home-run { padding: 22px 16px 18px; border-bottom: 1px solid var(--line); }
+.run-eyebrow { display: inline-flex; align-items: center; gap: 7px; font: 600 11px var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); }
+.run-eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+.run-time { font-size: 46px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.02; margin-top: 12px; background: linear-gradient(180deg, #ff9a52, #f0680f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.run-desc { font-size: 13px; line-height: 1.5; color: var(--text-2); margin-top: 12px; }
+.run-desc b { color: var(--text); font-weight: 600; }
+.run-bars { display: flex; gap: 5px; margin-top: 18px; }
+.run-bars .bar { flex: 1; height: 30px; border-radius: 6px; background: var(--surface-3); }
+.run-bars .bar.on { background: linear-gradient(180deg, #ff9550, #f0680f); box-shadow: 0 2px 8px rgba(244,117,33,0.3); }
+.run-barlabel { display: flex; justify-content: space-between; margin-top: 9px; font: 500 10px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+.run-cards { display: flex; gap: 10px; margin-top: 18px; }
+.run-card { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 15px 14px; }
+.rc-n { font: 800 26px var(--sans); letter-spacing: -0.02em; }
+.rc-l { font: 500 9.5px var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-top: 6px; }
+
+/* resume card */
+.resume { display: flex; align-items: center; gap: 13px; width: calc(100% - 32px); margin: 16px; text-align: left; padding: 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-family: var(--sans); color: var(--text); transition: border-color 0.15s, background 0.15s; }
+.resume:hover { border-color: var(--line-strong); background: var(--surface-2); }
+.resume-thumb { width: 84px; height: 54px; flex: 0 0 auto; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-3) center/cover no-repeat; }
+.resume-main { flex: 1; min-width: 0; }
+.resume-eyebrow { font: 600 10px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); }
+.resume-title { font-size: 16px; font-weight: 700; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resume-sub { font: 500 12px var(--mono); color: var(--text-3); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resume-play { width: 46px; height: 46px; flex: 0 0 auto; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(180deg, #ff8f47, #f0680f); box-shadow: 0 4px 14px rgba(244,117,33,0.4); color: #1a0d03; }
+.resume:hover .resume-play { filter: brightness(1.06); }
+
+/* poster cards (MAL list / seasonal) */
+.pcard { flex: 0 0 auto; width: 104px; cursor: pointer; }
+.pcard .ph { position: relative; width: 104px; height: 148px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--surface-3) center/cover no-repeat; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+.pcard:hover .ph { transform: translateY(-3px); box-shadow: 0 10px 22px -8px rgba(0,0,0,0.75); }
+.pcard .sbadge { position: absolute; top: 6px; left: 6px; display: inline-flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.72); color: #ffc24b; font: 600 10px var(--mono); padding: 2px 6px; border-radius: 6px; }
+.pcard .pbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0,0,0,0.55); }
+.pcard .pbar > i { display: block; height: 100%; background: var(--accent); }
+.pcard .pt { font-size: 11px; font-weight: 600; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.pcard .ps { font: 500 10px var(--mono); color: var(--text-3); margin-top: 1px; }
 
 /* ── footer ── */
 .footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px 10px 16px; border-top: 1px solid var(--line); background: rgba(0,0,0,0.2); flex: 0 0 auto; }

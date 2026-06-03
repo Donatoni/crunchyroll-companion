@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./sidepanel.css" />
@@ -96,19 +96,43 @@
         </section>
       </div>
 
-      <!-- ───────── Idle ───────── -->
+      <!-- ───────── Idle / home dashboard (concept C · Your run) ───────── -->
       <div id="idleView" hidden>
-        <div class="idle-hero">
-          <div class="idle-ic">
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M6 5.5a1 1 0 0 1 1.5-.87l11 6.5a1 1 0 0 1 0 1.74l-11 6.5A1 1 0 0 1 6 18.5v-13Z" fill="var(--accent)" /></svg>
+        <div class="home-run">
+          <span class="run-eyebrow"><span class="dot"></span>Your run so far</span>
+          <div class="run-time" id="runTime">0m</div>
+          <p class="run-desc" id="runDesc">of intros, recaps &amp; credits skipped.</p>
+          <div class="run-bars" id="runBars"></div>
+          <div class="run-barlabel"><span>Last 14 days</span><span id="runTotal">0 skips total</span></div>
+          <div class="run-cards">
+            <div class="run-card"><div class="rc-n" id="runSegments">0</div><div class="rc-l">Segments skipped</div></div>
+            <div class="run-card"><div class="rc-n" id="runShows">0</div><div class="rc-l">Shows tracked</div></div>
           </div>
-          <div class="idle-title">Nothing playing</div>
-          <div class="idle-sub">Open a Crunchyroll episode and your show, progress, and skip controls appear here.</div>
-          <a class="idle-btn" href="https://www.crunchyroll.com" target="_blank" rel="noopener">Open Crunchyroll</a>
         </div>
+
+        <button class="resume" id="resumeCard" hidden>
+          <div class="resume-thumb" id="resumeThumb"></div>
+          <div class="resume-main">
+            <span class="resume-eyebrow">Resume</span>
+            <div class="resume-title" id="resumeTitle"></div>
+            <div class="resume-sub" id="resumeSub"></div>
+          </div>
+          <span class="resume-play"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5a1 1 0 0 1 1.5-.87l11 6.5a1 1 0 0 1 0 1.74l-11 6.5A1 1 0 0 1 7 18.5v-13Z"/></svg></span>
+        </button>
+
         <section class="section" id="idleHistorySection" hidden>
-          <div class="sec-head"><span class="sec-label">Continue watching</span><button class="link-btn" id="idle-clear">Clear</button></div>
+          <div class="sec-head"><span class="sec-label">Jump back in</span><button class="link-btn" id="idle-clear">Clear</button></div>
           <div class="rail" id="idleHistory"></div>
+        </section>
+
+        <section class="section" id="myListSection" hidden>
+          <div class="sec-head"><span class="sec-label">Watching on MyAnimeList</span></div>
+          <div class="rail" id="myListRail"></div>
+        </section>
+
+        <section class="section" id="seasonalSection" hidden>
+          <div class="sec-head"><span class="sec-label">Trending this season</span></div>
+          <div class="rail" id="seasonalRail"></div>
         </section>
       </div>
     </div>

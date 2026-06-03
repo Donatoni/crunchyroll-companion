@@ -341,6 +341,74 @@ export async function getReviews(
   return { reviews, allUrl };
 }
 
+export interface MalListItem {
+  id: number;
+  title: string;
+  picture: string | null;
+  watched: number;
+  total: number | null;
+}
+
+/** The signed-in user's anime list for a status, most-recently-updated first. */
+export async function getUserList(
+  access: string,
+  status: string,
+  limit = 16,
+): Promise<MalListItem[]> {
+  const res = await fetch(
+    `${API}/users/@me/animelist?status=${status}&fields=list_status,num_episodes,main_picture&sort=list_updated_at&limit=${limit}`,
+    { headers: { Authorization: `Bearer ${access}` }, cache: 'no-store' },
+  );
+  if (!res.ok) throw new Error(`MAL HTTP ${res.status}`);
+  const j = await res.json();
+  return (j.data ?? []).map(
+    (d: {
+      node: { id: number; title: string; main_picture?: { medium?: string }; num_episodes?: number };
+      list_status?: { num_episodes_watched?: number };
+    }) => ({
+      id: d.node.id,
+      title: d.node.title,
+      picture: d.node.main_picture?.medium ?? null,
+      total: d.node.num_episodes || null,
+      watched: d.list_status?.num_episodes_watched ?? 0,
+    }),
+  );
+}
+
+export interface SeasonalItem {
+  id: number;
+  title: string;
+  picture: string | null;
+  score: number | null;
+  type: string | null;
+}
+
+/** Popular currently-airing shows this season, via Jikan (no auth). */
+export async function getSeasonal(): Promise<SeasonalItem[]> {
+  const res = await fetch('https://api.jikan.moe/v4/seasons/now?sfw=true&limit=25');
+  if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
+  const j = await res.json();
+  return (j.data ?? [])
+    .filter((d: { images?: { jpg?: { image_url?: string } }; type?: string }) => d.images?.jpg?.image_url && d.type === 'TV')
+    .sort((a: { members?: number }, b: { members?: number }) => (b.members ?? 0) - (a.members ?? 0))
+    .slice(0, 16)
+    .map(
+      (d: {
+        mal_id: number;
+        title: string;
+        images?: { jpg?: { image_url?: string; large_image_url?: string } };
+        score?: number;
+        type?: string;
+      }) => ({
+        id: d.mal_id,
+        title: d.title,
+        picture: d.images?.jpg?.large_image_url ?? d.images?.jpg?.image_url ?? null,
+        score: d.score ?? null,
+        type: d.type ?? null,
+      }),
+    );
+}
+
 export interface MalListPatch {
   num_watched_episodes?: number;
   status?: string;

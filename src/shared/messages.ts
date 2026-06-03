@@ -1,5 +1,5 @@
 import type { SkipSegment, TrackerMeta } from './types';
-import type { MalCharacter, MalRelated, MalReview } from './mal';
+import type { MalCharacter, MalListItem, MalRelated, MalReview, SeasonalItem } from './mal';
 import { isExtensionContextValid } from './runtime';
 
 /**
@@ -111,6 +111,26 @@ export interface MalReviewsResponse {
   allUrl?: string;
 }
 
+/** Side panel -> worker: the signed-in user's list for a status (home dashboard). */
+export interface MyListRequest {
+  type: 'GET_MY_LIST';
+  status: string;
+}
+export interface MyListResponse {
+  ok: boolean;
+  connected: boolean;
+  items: MalListItem[];
+}
+
+/** Side panel -> worker: popular currently-airing shows (home discovery). */
+export interface SeasonalRequest {
+  type: 'GET_SEASONAL';
+}
+export interface SeasonalResponse {
+  ok: boolean;
+  items: SeasonalItem[];
+}
+
 /** Popup -> worker: edit the user's MAL list entry for the current show. */
 export interface SetMalStatusRequest {
   type: 'SET_MAL_STATUS';
@@ -147,7 +167,9 @@ export type RuntimeMessage =
   | SetMalStatusRequest
   | StartMalAuthRequest
   | MalCharactersRequest
-  | MalReviewsRequest;
+  | MalReviewsRequest
+  | MyListRequest
+  | SeasonalRequest;
 
 /** Promise wrapper around chrome.runtime.sendMessage for skip-events. */
 export function requestSkipEvents(
@@ -229,6 +251,19 @@ export function requestMalReviews(animeId: number): Promise<MalReviewsResponse> 
   return chrome.runtime.sendMessage<MalReviewsRequest, MalReviewsResponse>({
     type: 'GET_MAL_REVIEWS',
     animeId,
+  });
+}
+
+export function requestMyList(status: string): Promise<MyListResponse> {
+  return chrome.runtime.sendMessage<MyListRequest, MyListResponse>({
+    type: 'GET_MY_LIST',
+    status,
+  });
+}
+
+export function requestSeasonal(): Promise<SeasonalResponse> {
+  return chrome.runtime.sendMessage<SeasonalRequest, SeasonalResponse>({
+    type: 'GET_SEASONAL',
   });
 }
 

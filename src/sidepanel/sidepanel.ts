@@ -12,6 +12,8 @@ import {
   startMalAuth,
   requestMalCharacters,
   requestMalReviews,
+  requestMyList,
+  requestSeasonal,
 } from '@/shared/messages';
 import type {
   ContentStatusRequest,
@@ -20,7 +22,7 @@ import type {
 } from '@/shared/messages';
 import type { MalCharacter, MalRelated, MalReview } from '@/shared/mal';
 import { getUserName } from '@/shared/mal';
-import { formatSaved, getStats } from '@/shared/stats';
+import { formatSaved, getStats, lastNDays } from '@/shared/stats';
 import { clearHistory, getHistory, removeHistory, type HistoryEntry } from '@/shared/history';
 import {
   clearToken,
@@ -103,6 +105,20 @@ const reviewsList = $('#reviewsList');
 
 const idleHistorySection = $('#idleHistorySection');
 const idleHistory = $('#idleHistory');
+const runTime = $('#runTime');
+const runDesc = $('#runDesc');
+const runBars = $('#runBars');
+const runTotal = $('#runTotal');
+const runSegments = $('#runSegments');
+const runShows = $('#runShows');
+const resumeCard = $<HTMLButtonElement>('#resumeCard');
+const resumeThumb = $('#resumeThumb');
+const resumeTitle = $('#resumeTitle');
+const resumeSub = $('#resumeSub');
+const myListSection = $('#myListSection');
+const myListRail = $('#myListRail');
+const seasonalSection = $('#seasonalSection');
+const seasonalRail = $('#seasonalRail');
 
 // ── helpers ─────────────────────────────────────────────────────────
 function metaKey(m: TrackerMeta): string {
@@ -116,7 +132,11 @@ function setBg(el: HTMLElement, url: string | null | undefined): void {
 function renderHero(): void {
   if (!currentMeta) return;
   setBg(heroBg, currentMeta.thumbnail);
-  setBg(poster, malResp?.picture || currentMeta.thumbnail);
+  // Poster: show ONLY the MAL cover. While MAL is still loading (malResp
+  // undefined) leave it blank rather than flashing the Crunchyroll thumbnail
+  // and then swapping. Fall back to the CR thumbnail only once MAL has resolved
+  // with no image of its own (no match), so we never show CR → MAL.
+  setBg(poster, malResp ? malResp.picture || currentMeta.thumbnail : null);
   heroTitle.textContent = currentMeta.series;
   const se = [
     currentMeta.season ? `S${currentMeta.season}` : null,
@@ -565,17 +585,21 @@ async function refresh(): Promise<void> {
   if (currentMeta) {
     idleView.hidden = true;
     watchingView.hidden = false;
-    renderHero();
     const key = metaKey(currentMeta);
     if (key !== lastMetaKey) {
       lastMetaKey = key;
+      malResp = undefined; // new show: drop stale MAL data so the poster waits for the new cover
       void loadMal();
     }
+    renderHero();
   } else {
     watchingView.hidden = true;
     idleView.hidden = false;
     lastMetaKey = '';
+    void renderRun();
+    void renderResume();
     void renderIdleHistory();
+    loadHomeContent();
   }
 }
 
@@ -609,6 +633,137 @@ $('#idle-clear').addEventListener('click', async () => {
 async function openEpisode(url: string): Promise<void> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (tab?.id) await chrome.tabs.update(tab.id, { url });
+}
+
+/** Open a Crunchyroll search for a title (to find/resume a MAL/seasonal pick). */
+async function openCrSearch(title: string): Promise<void> {
+  await openEpisode(`https://www.crunchyroll.com/search?q=${encodeURIComponent(title)}`);
+}
+
+/** Build a portrait poster card with optional score badge / progress bar. */
+function posterCard(
+  picture: string | null,
+  title: string,
+  sub: string,
+  opts: { score?: number | null; progress?: number } = {},
+): HTMLElement {
+  const card = document.createElement('div');
+  card.className = 'pcard';
+  card.title = title;
+  const ph = document.createElement('div');
+  ph.className = 'ph';
+  setBg(ph, picture);
+  if (opts.score) {
+    const b = document.createElement('div');
+    b.className = 'sbadge';
+    b.innerHTML = `<span style="color:#ffc24b">★</span>${opts.score.toFixed(opts.score % 1 ? 1 : 0)}`;
+    ph.appendChild(b);
+  }
+  if (opts.progress != null && opts.progress > 0) {
+    const bar = document.createElement('div');
+    bar.className = 'pbar';
+    const i = document.createElement('i');
+    i.style.width = `${Math.min(100, opts.progress * 100)}%`;
+    bar.appendChild(i);
+    ph.appendChild(bar);
+  }
+  const t = document.createElement('div');
+  t.className = 'pt';
+  t.textContent = title;
+  const s = document.createElement('div');
+  s.className = 'ps';
+  s.textContent = sub;
+  card.append(ph, t, s);
+  return card;
+}
+
+const SECONDS_PER_EP = 24 * 60; // avg anime episode for the "≈ N episodes" line
+
+async function renderRun(): Promise<void> {
+  const [s, hist] = await Promise.all([getStats(), getHistory()]);
+
+  runTime.textContent = s.secondsSaved > 0 ? formatSaved(s.secondsSaved).replace('~', '') : '0m';
+
+  const eps = Math.round(s.secondsSaved / SECONDS_PER_EP);
+  runDesc.innerHTML =
+    'of intros, recaps &amp; credits skipped' +
+    (eps >= 1
+      ? ` — that's roughly <b>${eps} full episode${eps === 1 ? '' : 's'}</b> you didn't have to sit through.`
+      : '.');
+
+  // recent-activity strip: a bar per day, lit when you skipped something
+  runBars.replaceChildren();
+  for (const count of lastNDays(s, 14)) {
+    const bar = document.createElement('div');
+    bar.className = 'bar' + (count > 0 ? ' on' : '');
+    runBars.appendChild(bar);
+  }
+  runTotal.textContent = `${s.skips} skips total`;
+  runSegments.textContent = String(s.skips);
+  runShows.textContent = String(hist.length);
+}
+
+async function renderResume(): Promise<void> {
+  const [latest] = await getHistory();
+  if (!latest) {
+    resumeCard.hidden = true;
+    return;
+  }
+  resumeCard.hidden = false;
+  setBg(resumeThumb, latest.thumbnail);
+  resumeTitle.textContent = latest.series;
+  const se = [latest.season ? `S${latest.season}` : null, latest.episode ? `E${latest.episode}` : null]
+    .filter(Boolean)
+    .join(' · ');
+  resumeSub.textContent = [se, latest.episodeTitle].filter(Boolean).join(' — ');
+  resumeCard.onclick = () => void openEpisode(latest.url);
+}
+
+let homeLoaded = false;
+function loadHomeContent(): void {
+  if (homeLoaded) return; // network sections load once per panel session
+  homeLoaded = true;
+  void loadMyList();
+  void loadSeasonal();
+}
+
+async function loadMyList(): Promise<void> {
+  myListSection.hidden = true;
+  try {
+    const r = await requestMyList('watching');
+    if (!r.connected || !r.items.length) return;
+    myListRail.replaceChildren();
+    for (const it of r.items) {
+      const card = posterCard(
+        it.picture,
+        it.title,
+        it.total ? `${it.watched} / ${it.total}` : `Ep ${it.watched}`,
+        { progress: it.total ? it.watched / it.total : 0 },
+      );
+      card.addEventListener('click', () => void openCrSearch(it.title));
+      myListRail.appendChild(card);
+    }
+    myListSection.hidden = false;
+  } catch {
+    /* leave hidden */
+  }
+}
+
+async function loadSeasonal(): Promise<void> {
+  seasonalSection.hidden = true;
+  try {
+    const r = await requestSeasonal();
+    if (!r.items.length) return;
+    seasonalRail.replaceChildren();
+    for (const it of r.items) {
+      const card = posterCard(it.picture, it.title, it.type ?? 'TV', { score: it.score });
+      card.addEventListener('click', () => void openCrSearch(it.title));
+      seasonalRail.appendChild(card);
+    }
+    seasonalSection.hidden = false;
+  } catch {
+    /* leave hidden */
+  }
 }
 
 // ── footer stats ────────────────────────────────────────────────────

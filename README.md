@@ -3,18 +3,55 @@
 An all-in-one enhancement extension for [Crunchyroll](https://www.crunchyroll.com)
 (Chrome / Edge, Manifest V3). Version **0.1.0**.
 
+It lives in a persistent Chrome **side panel** that adapts to what you're doing:
+a live show companion while you watch, and a home dashboard everywhere else.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="img/on-site.png" alt="Crunchy Tools side panel next to a Crunchyroll episode" />
+      <br />
+      <sub><b>On Crunchyroll</b> — the live show panel: now-playing hero, MyAnimeList
+      sync, your episode/status/score, plus the show's synopsis, seasons, characters
+      and reviews.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="img/off-site.png" alt="Crunchy Tools home dashboard next to another site" />
+      <br />
+      <sub><b>Anywhere else</b> — the home dashboard: your skip stats and activity,
+      a Resume card, Continue-watching, your MyAnimeList "watching" list, and what's
+      trending this season.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="img/settings.png" alt="Crunchy Tools settings panel" />
+      <br />
+      <sub><b>Settings</b> — skip method, per-segment auto-skip toggles, playback
+      options, and your MyAnimeList connection — all inline in the panel.</sub>
+    </td>
+    <td width="50%" valign="top">
+      <img src="img/recent.png" alt="Crunchy Tools recent / continue-watching panel" />
+      <br />
+      <sub><b>Continue watching</b> — your recently opened episodes, with one-click
+      resume and per-entry remove.</sub>
+    </td>
+  </tr>
+</table>
+
 - **Auto-skip** intro, recap, outro/credits, and the next-episode preview — each
   independently toggleable.
 - **Auto-play the next episode** when one finishes.
 - **Keep watching**: dismisses Crunchyroll's "Are you still watching?" / profile
   prompts so a binge isn't interrupted.
 - **MyAnimeList sync** (opt-in): keeps your MAL progress on the episode you're
-  actually watching, and a popup card to adjust episode / status / score by hand.
+  actually watching, with rich show details (synopsis, genres, seasons,
+  characters, reviews) and inline controls to adjust episode / status / score.
 - **Continue watching**: a Recent list of shows you've opened, with one-click
   resume and per-entry delete.
 - A small **"Skipped intro — Undo"** toast so a skip never feels like a glitch,
-  plus lifetime **skip stats** (count + time saved) in the popup footer.
-- A quick-toggle **popup** and a full **options page**, with settings synced
+  plus lifetime **skip stats** (time saved + an activity sparkline) on the home page.
+- A persistent **side panel** and a full **options page**, with settings synced
   across your signed-in browsers via `chrome.storage.sync`.
 
 > This is a personal, client-side enhancement that only automates actions you can
@@ -51,9 +88,9 @@ own MAL account, and toggle **Sync watched episodes** on. Nothing else to set up
   playback, enough to confirm you're actually watching it) your MAL progress is
   set to that episode — so moving from episode 5 to 6 updates MAL to 6 rather than
   lagging a whole episode behind. Auto-sync only ever moves progress *forward*.
-- **Manual control in the popup.** While on a watch page, the popup shows a MAL
-  card: a `–`/`+` episode stepper, status dropdown (Watching / Completed / …),
-  your score, a Rewatch shortcut, and a link to the entry on MAL.
+- **Manual control in the panel.** While on a watch page, the side panel shows a
+  MAL card: a `–`/`+` (and type-to-set) episode stepper, status dropdown (Watching
+  / Completed / …), a 1–10 star rating, and a link to the entry on MAL.
 - **Accurate matching.** The CR series is resolved to a MAL anime by scoring
   candidate titles (exact title and MAL alternative titles beat partial ones,
   the right season wins over other seasons, and full TV series beat
@@ -93,8 +130,9 @@ src/
 │  └─ toast.ts             #   "Skipped X — Undo" overlay
 ├─ background/
 │  └─ service-worker.ts    # skip-events fetch (avoids CORS) + MyAnimeList sync hub
-├─ options/                # full settings page
-├─ popup/                  # quick toggles + now-playing, MAL card, Recent list
+├─ options/                # full settings page (fallback)
+├─ sidepanel/              # the side panel: show view, home dashboard, settings,
+│                          #   MAL card, rails (seasons/characters/reviews/trending)
 ├─ shared/                 # settings, messages, MAL client, tracker store,
 │                          #   history, stats, runtime guards, types, parsers
 └─ assets/icons/
@@ -128,8 +166,8 @@ Then in Chrome / Edge:
 > `chrome://extensions` so Chrome picks up the new `dist/`, **then reload the
 > Crunchyroll tab** (content scripts aren't re-injected into already-open tabs).
 
-Use the toolbar **popup** for quick toggles, or **More settings** for the full
-options page.
+Click the toolbar icon to open the **side panel** (needs Chrome 114+); its
+**Settings** view covers everything, with the standalone options page as a fallback.
 
 ## Verifying it works
 
@@ -137,8 +175,8 @@ options page.
 - **Undo** in the toast restores your position and won't re-skip that segment.
 - Let an episode reach the credits → outro skip and (if enabled) auto-next.
 - Navigate to another episode **without reloading** → still works (SPA case).
-- Toggle settings in the popup → they apply live, no reload needed.
-- With MAL connected, a short way into an episode the popup's MAL card (and your
+- Toggle settings in the panel → they apply live, no reload needed.
+- With MAL connected, a short way into an episode the panel's MAL card (and your
   MAL list) should reflect the current episode.
 - The watch-page DevTools console shows the content script's activity; the
   **service worker** (chrome://extensions → *Inspect views: service worker*)

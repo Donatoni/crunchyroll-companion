@@ -182,7 +182,12 @@ body {
 .chip svg { width: 12px; height: 12px; }
 
 /* ── home dashboard — concept C "Your run" ── */
-.home-run { padding: 22px 16px 18px; border-bottom: 1px solid var(--line); }
+.home-run {
+  padding: 26px 16px 18px;
+  border-bottom: 1px solid var(--line);
+  /* warm ambient glow at the top, mirroring the watch-page hero backdrop */
+  background: radial-gradient(135% 92% at 50% -18%, rgba(244, 117, 33, 0.2) 0%, rgba(244, 117, 33, 0.05) 38%, transparent 64%);
+}
 .run-eyebrow { display: inline-flex; align-items: center; gap: 7px; font: 600 11px var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent-bright); }
 .run-eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 .run-time { font-size: 46px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.02; margin-top: 12px; background: linear-gradient(180deg, #ff9a52, #f0680f); -webkit-background-clip: text; background-clip: text; color: transparent; }

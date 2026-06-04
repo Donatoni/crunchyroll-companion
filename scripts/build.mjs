@@ -26,12 +26,16 @@ const r = (...p) => resolve(root, ...p);
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 
+// Drop console.* in production builds; keep them when DEBUG=1 for local dev.
+const debug = process.env.DEBUG === '1';
+
 const common = {
   bundle: true,
   format: 'iife',
   target: 'es2021',
   logLevel: 'info',
   alias: { '@': r('src') },
+  drop: debug ? [] : ['console'],
 };
 
 // Bundle each entry to a single self-contained file (no code-splitting, no
@@ -66,8 +70,9 @@ const manifest = {
   manifest_version: 3,
   name: 'Crunchy Companion',
   description:
-    'Auto-skip intro/outro/recap/preview and auto-play next episode on Crunchyroll.',
+    'Crunchyroll side panel: auto-skip intro/recap/outro/preview, auto-play next, and optional MyAnimeList sync.',
   version: '0.1.0',
+  minimum_chrome_version: '114',
   // Pins the extension ID (jcfmdllkakmjkihgphmmimhiehcbbfei) so the OAuth
   // redirect URL stays constant and can be registered once in the MAL app.
   key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuEHac8FPd0IUBTpyyrong2jvFYkV9X3Nk02Rv4VWRXoGGlpzMPWlExTntIQpjhNB8qXMpvureGfoBh2ibEYrclcEFJzwBOHcAjBs6N7UNhjw9YDRxwiQqnkbeeEXsNbBsuTzOLzqdy2BJEK35vsXHLpf2keHMFHuI0ztjmjLAatMmsZl6OT4JD0/xaBF7ShwAE42Ljlujw3TB42kkjoegc1p9q+IgZ/Bl3uDpz1FChWAQwSFjZISZv8mGjHdH8Jz27/wz5FtfmEG8eZBIOOEJQw52k1Q/QVbusKRfQaqT/65Wn+odwm6RyWdpzsqxFZWKS1xpPW6uhUduW2F/vVjdwIDAQAB',

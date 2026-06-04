@@ -34,6 +34,13 @@ import {
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
+/** Escape a value for safe interpolation into an innerHTML string. */
+const esc = (v: unknown): string =>
+  String(v ?? '').replace(
+    /[&<>"']/g,
+    (c) => (({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string),
+  );
+
 const MAL_STATUS = [
   { value: 'watching', label: 'Watching', dot: '#3aa0ff' },
   { value: 'completed', label: 'Completed', dot: '#34d27b' },
@@ -167,10 +174,10 @@ function renderDetails(r: MalStatusResponse): void {
     return s;
   };
   if (r.mean) bits.push(stat(`<span class="star">★</span><b>${r.mean.toFixed(2)}</b>`));
-  if (r.mediaType) bits.push(stat(r.mediaType.toUpperCase()));
-  if (r.total) bits.push(stat(`<b>${r.total}</b>&nbsp;eps`));
-  if (r.year) bits.push(stat(String(r.year)));
-  if (r.studios && r.studios.length) bits.push(stat(r.studios[0]));
+  if (r.mediaType) bits.push(stat(esc(r.mediaType.toUpperCase())));
+  if (r.total) bits.push(stat(`<b>${esc(r.total)}</b>&nbsp;eps`));
+  if (r.year) bits.push(stat(esc(r.year)));
+  if (r.studios && r.studios.length) bits.push(stat(esc(r.studios[0])));
   metaStrip.replaceChildren();
   bits.forEach((b, i) => {
     if (i) {
@@ -217,8 +224,8 @@ function renderSeasons(related: MalRelated[]): void {
     cur.className = 'season cur';
     cur.innerHTML =
       `<div class="ph"></div><div class="t"></div><div class="n">${
-        malResp.mediaType ? malResp.mediaType.toUpperCase() : ''
-      }${malResp.total ? ' · ' + malResp.total : ''}</div>`;
+        malResp.mediaType ? esc(malResp.mediaType.toUpperCase()) : ''
+      }${malResp.total ? ' · ' + esc(malResp.total) : ''}</div>`;
     setBg(cur.querySelector('.ph')!, malResp.picture);
     cur.querySelector<HTMLElement>('.t')!.textContent = malResp.title;
     seasonsRail.appendChild(cur);
@@ -227,7 +234,7 @@ function renderSeasons(related: MalRelated[]): void {
     const el = document.createElement('div');
     el.className = 'season';
     el.innerHTML =
-      `<div class="ph"></div><div class="t"></div><div class="n">${r.relation || (r.mediaType ?? '')}</div>`;
+      `<div class="ph"></div><div class="t"></div><div class="n">${esc(r.relation || (r.mediaType ?? ''))}</div>`;
     setBg(el.querySelector('.ph')!, r.picture);
     el.querySelector<HTMLElement>('.t')!.textContent = r.title;
     el.title = `${r.title}${r.relation ? ' — ' + r.relation : ''}`;
@@ -299,8 +306,8 @@ async function loadReviews(animeId: number): Promise<void> {
     top.className = 'review-top';
     top.innerHTML =
       `<div class="review-av"></div><span class="review-user"></span>` +
-      (rv.score ? `<span class="review-score"><span style="color:#ffc24b">★</span>${rv.score}</span>` : '') +
-      (rv.tag ? `<span class="review-tag ${tagCls}">${rv.tag}</span>` : '');
+      (rv.score ? `<span class="review-score"><span style="color:#ffc24b">★</span>${esc(rv.score)}</span>` : '') +
+      (rv.tag ? `<span class="review-tag ${tagCls}">${esc(rv.tag)}</span>` : '');
     setBg(top.querySelector('.review-av')!, rv.avatar);
     top.querySelector<HTMLElement>('.review-user')!.textContent = rv.user;
     const text = document.createElement('div');

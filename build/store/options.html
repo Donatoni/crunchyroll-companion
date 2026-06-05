@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crunchy Companion — Settings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./options.css" />
+  </head>
+  <body>
+    <main class="card">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="icon-mark" style="width: 34px; height: 34px; border-radius: 9px">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3.2 6.4a1 1 0 0 1 1.55-.84l7.1 4.8a1.2 1.2 0 0 1 0 1.99l-7.1 4.8A1 1 0 0 1 3.2 16.3V6.4Z" fill="#1a0d03" />
+              <path d="M11.6 6.4a1 1 0 0 1 1.55-.84l7.1 4.8a1.2 1.2 0 0 1 0 1.99l-7.1 4.8a1 1 0 0 1-1.55-.83V6.4Z" fill="#1a0d03" />
+            </svg>
+          </div>
+          <div>
+            <div class="brand-name">Crunchy Companion</div>
+            <div class="brand-ver">v0.1.0</div>
+          </div>
+        </div>
+
+        <!-- Master enable -->
+        <div class="master-box on" id="masterBox">
+          <div>
+            <div class="master-title">Extension</div>
+            <div class="master-sub" id="masterSub">Enabled</div>
+          </div>
+          <label class="switch sm"><input type="checkbox" id="enabled" /><span class="slider"></span></label>
+        </div>
+
+        <nav class="nav">
+          <button type="button" class="nav-item active" data-tab="skipping">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5 11 12 4 17.5V6.5Z M12 6.5 19 12 12 17.5V6.5Z" /></svg>
+            Skipping
+          </button>
+          <button type="button" class="nav-item" data-tab="playback">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5.5 18 12 8 18.5V5.5Z" /></svg>
+            Playback
+          </button>
+          <button type="button" class="nav-item" data-tab="mal">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12 M4 12h12 M4 18h7 M15 17l2.5 2.5L22 14" /></svg>
+            MyAnimeList
+          </button>
+          <button type="button" class="nav-item" data-tab="about">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z M12 11v5 M12 7.5h.01" /></svg>
+            About
+          </button>
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+        <div class="run-state">
+          <span class="run-dot" id="runDot"></span>
+          <span class="run-text" id="runText">Running on Crunchyroll</span>
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <section class="content">
+        <!-- Skipping -->
+        <div class="panel active" data-panel="skipping">
+          <div class="panel-head">
+            <h2>Skipping</h2>
+            <p>Which segments to skip, and how Crunchy Companion jumps past them.</p>
+          </div>
+          <div data-dim>
+            <div class="group-label">Auto-skip segments</div>
+            <div class="fields">
+              <div class="field">
+                <div><div class="field-title">Intro</div><div class="field-desc">The opening theme / OP.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" data-skip="intro" /><span class="slider"></span></label></span>
+              </div>
+              <div class="field">
+                <div><div class="field-title">Recap</div><div class="field-desc">“Previously on…” catch-up segments.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" data-skip="recap" /><span class="slider"></span></label></span>
+              </div>
+              <div class="field">
+                <div><div class="field-title">Outro / Credits</div><div class="field-desc">The ending theme / ED.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" data-skip="credits" /><span class="slider"></span></label></span>
+              </div>
+              <div class="field last">
+                <div><div class="field-title">Next-episode preview</div><div class="field-desc">The teaser shown after the credits.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" data-skip="preview" /><span class="slider"></span></label></span>
+              </div>
+            </div>
+
+            <div class="group-label">Method</div>
+            <div class="radio-stack">
+              <label class="radio-card">
+                <input type="radio" name="mode" value="seek" />
+                <span class="radio-dot"></span>
+                <span>
+                  <span class="radio-title">Smart seek <span class="badge">Recommended</span></span>
+                  <span class="radio-desc">Uses Crunchyroll's published skip timings to jump instantly. Falls back to the native button when an episode has no data.</span>
+                </span>
+              </label>
+              <label class="radio-card">
+                <input type="radio" name="mode" value="click" />
+                <span class="radio-dot"></span>
+                <span>
+                  <span class="radio-title">Click native button</span>
+                  <span class="radio-desc">Only ever auto-clicks Crunchyroll's own “Skip” button when it appears.</span>
+                </span>
+              </label>
+            </div>
+
+            <div class="group-label">Feedback</div>
+            <div class="fields">
+              <div class="field last">
+                <div><div class="field-title">Show skip toast</div><div class="field-desc">A brief “Skipped intro — Undo” notice after each skip, so a jump never feels like a glitch.</div></div>
+                <span class="field-control"><label class="switch"><input type="checkbox" id="showToast" /><span class="slider"></span></label></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Playback -->
+        <div class="panel" data-panel="playback">
+          <div class="panel-head">
+            <h2>Playback</h2>
+            <p>What happens around and between episodes.</p>
+          </div>
+          <div class="fields" data-dim>
+            <div class="field">
+              <div><div class="field-title">Auto-play next episode</div><div class="field-desc">Clicks “Up Next” the moment an episode ends.</div></div>
+              <span class="field-control"><label class="switch"><input type="checkbox" id="autoNext" /><span class="slider"></span></label></span>
+            </div>
+            <div class="field last">
+              <div><div class="field-title">Keep watching</div><div class="field-desc">Dismisses “are you still watching?” and profile prompts during long auto-play sessions.</div></div>
+              <span class="field-control"><label class="switch"><input type="checkbox" id="keepWatching" /><span class="slider"></span></label></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MyAnimeList -->
+        <div class="panel" data-panel="mal">
+          <div class="panel-head">
+            <h2>MyAnimeList sync</h2>
+            <p>Update your MAL progress automatically as you watch.</p>
+          </div>
+          <div class="mal-connect" id="mal-connect">
+            <div class="mal-badge-lg">MAL</div>
+            <div class="mal-connect-main">
+              <div class="mal-connect-title" id="mal-status">Not connected</div>
+              <div class="mal-connect-sub">Sign in once on MyAnimeList — nothing to configure.</div>
+            </div>
+            <button type="button" class="btn" id="connect">Connect MyAnimeList</button>
+            <button type="button" class="btn ghost" id="disconnect" hidden>Disconnect</button>
+          </div>
+          <div class="fields">
+            <div class="field last">
+              <div><div class="field-title">Sync watched episodes</div><div class="field-desc">Updates your MyAnimeList progress automatically at ~80% watched.</div></div>
+              <span class="field-control"><label class="switch"><input type="checkbox" id="malEnabled" /><span class="slider"></span></label></span>
+            </div>
+          </div>
+          <div id="mappings-wrap" hidden>
+            <h3 class="subhead">Series → MyAnimeList mappings</h3>
+            <p class="hint">If a show synced to the wrong entry, correct its MAL anime ID here.</p>
+            <div id="mappings"></div>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div class="panel" data-panel="about">
+          <div class="panel-head">
+            <h2>About</h2>
+            <p>Crunchy Companion — all-in-one Crunchyroll enhancements.</p>
+          </div>
+          <div class="about-row">
+            <div class="icon-mark" style="width: 64px; height: 64px; border-radius: 17px">
+              <svg width="37" height="37" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M3.2 6.4a1 1 0 0 1 1.55-.84l7.1 4.8a1.2 1.2 0 0 1 0 1.99l-7.1 4.8A1 1 0 0 1 3.2 16.3V6.4Z" fill="#1a0d03" />
+                <path d="M11.6 6.4a1 1 0 0 1 1.55-.84l7.1 4.8a1.2 1.2 0 0 1 0 1.99l-7.1 4.8a1 1 0 0 1-1.55-.83V6.4Z" fill="#1a0d03" />
+              </svg>
+            </div>
+            <div>
+              <div class="about-name">Crunchy Companion</div>
+              <div class="about-ver">Version 0.1.0 · MIT</div>
+            </div>
+          </div>
+          <div class="chips">
+            <a class="chip" href="https://github.com/Donatoni/crunchy-companion/issues" target="_blank" rel="noopener" id="report-issue">Report an issue</a>
+            <a class="chip" href="https://github.com/Donatoni/crunchy-companion" target="_blank" rel="noopener" id="view-source">Source</a>
+          </div>
+          <p class="disclaimer">A personal, client-side enhancement that only automates actions you can already perform yourself. It does not bypass paywalls, DRM, or advertising.</p>
+        </div>
+      </section>
+    </main>
+
+    <div class="saved-toast" id="status">Saved</div>
+
+    <script src="./options.js"></script>
+  </body>
+</html>

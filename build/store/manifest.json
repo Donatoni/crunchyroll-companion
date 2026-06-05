@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Crunchy Companion",
+  "description": "Crunchyroll side panel: auto-skip intro/recap/outro/preview, auto-play next, and optional MyAnimeList sync.",
+  "version": "0.1.0",
+  "minimum_chrome_version": "114",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "Crunchy Companion",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.crunchyroll.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ],
+  "permissions": [
+    "storage",
+    "identity",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "*://*.crunchyroll.com/*",
+    "*://static.crunchyroll.com/*",
+    "https://myanimelist.net/*",
+    "https://api.myanimelist.net/*",
+    "https://api.jikan.moe/*"
+  ]
+}

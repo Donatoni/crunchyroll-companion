@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crunchy Companion</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./sidepanel.css" />
+  </head>
+  <body>
+    <div class="scroll" id="scroll">
+      <!-- ───────── Watching ───────── -->
+      <div id="watchingView" hidden>
+        <div class="hero">
+          <div class="hero-bg" id="heroBg"></div>
+          <div class="hero-grad"></div>
+          <div class="hero-inner">
+            <div class="poster" id="poster"></div>
+            <div class="hero-meta">
+              <span class="eyebrow"><span class="dot"></span><span>Now watching</span></span>
+              <div class="hero-title" id="heroTitle">—</div>
+              <div class="hero-sub"><span class="se" id="heroSE" hidden></span><span id="heroEpTitle"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="meta-strip" id="metaStrip" hidden></div>
+        <div class="genres" id="genres" hidden></div>
+        <div class="synopsis" id="synopsisWrap" hidden>
+          <p class="clamp" id="synopsis"></p>
+          <button class="more" id="synMore">Read more</button>
+        </div>
+
+        <!-- Your list -->
+        <section class="section" id="malSection">
+          <div class="sec-head"><span class="sec-label">Your list</span><span class="synced" id="malSynced" hidden><span class="dot"></span>SYNCED</span></div>
+
+          <div class="list-card" id="malCard" hidden>
+            <div class="prog-top"><div class="prog-now"><span id="progNow">0</span> <span class="of" id="progTotal"></span></div><div class="prog-pct" id="progPct"></div></div>
+            <div class="bar"><i id="progBar"></i></div>
+            <div class="ep-row">
+              <span class="lbl">Episode</span>
+              <span class="stepper"><button id="epMinus" aria-label="One fewer">–</button><span class="val" id="epVal" contenteditable="true" role="textbox" inputmode="numeric" aria-label="Episode number" title="Click to type an episode">0</span><button id="epPlus" aria-label="One more">+</button></span>
+            </div>
+            <div class="row-divide"></div>
+            <div class="pickrow">
+              <span class="lbl">Status</span>
+              <div class="dd" id="statusDd">
+                <button class="pill" id="statusBtn"><span class="sd" id="statusDot"></span><span id="statusLabel">Watching</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" /></svg></button>
+                <div class="dd-menu" id="statusMenu" hidden></div>
+              </div>
+            </div>
+            <div class="row-divide"></div>
+            <div class="pickrow">
+              <span class="lbl">Your rating</span>
+              <div class="dd" id="scoreDd">
+                <button class="stars" id="scoreBtn" aria-label="Set rating"></button>
+                <div class="dd-menu score-menu" id="scoreMenu" hidden></div>
+              </div>
+            </div>
+            <a class="mal-link" id="malLink" target="_blank" rel="noopener">View on MyAnimeList
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M9 7h8v8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </a>
+          </div>
+
+          <button class="mal-nudge" id="malNudge" hidden>
+            <span class="mal-badge">MAL</span>
+            <span class="nudge-main"><span class="nudge-title">Track on MyAnimeList</span><span class="nudge-sub">Connect to sync your progress &amp; scores</span></span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="var(--text-3)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+          <div class="mal-note" id="malNote" hidden></div>
+          <div class="mal-err" id="malErr" hidden></div>
+        </section>
+
+        <!-- Seasons -->
+        <section class="section" id="seasonsSection" hidden>
+          <div class="sec-head"><span class="sec-label">Seasons &amp; related</span></div>
+          <div class="rail" id="seasonsRail"></div>
+        </section>
+
+        <!-- Characters -->
+        <section class="section" id="charactersSection" hidden>
+          <div class="sec-head"><span class="sec-label">Characters</span></div>
+          <div class="rail" id="charactersRail"></div>
+        </section>
+
+        <!-- Featured reviews -->
+        <section class="section" id="reviewsSection" hidden>
+          <div class="sec-head"><span class="sec-label">Featured reviews</span></div>
+          <div id="reviewsList"></div>
+        </section>
+      </div>
+
+      <!-- ───────── Idle / home dashboard (concept C · Your run) ───────── -->
+      <div id="idleView" hidden>
+        <div class="home-run">
+          <span class="run-eyebrow"><span class="dot"></span>Your run so far</span>
+          <div class="run-time" id="runTime">0m</div>
+          <p class="run-desc" id="runDesc">of intros, recaps &amp; credits skipped.</p>
+          <div class="run-bars" id="runBars"></div>
+          <div class="run-barlabel"><span>Last 14 days</span><span id="runTotal">0 skips total</span></div>
+          <div class="run-cards">
+            <div class="run-card"><div class="rc-n" id="runSegments">0</div><div class="rc-l">Segments skipped</div></div>
+            <div class="run-card"><div class="rc-n" id="runShows">0</div><div class="rc-l">Shows tracked</div></div>
+          </div>
+        </div>
+
+        <button class="resume" id="resumeCard" hidden>
+          <div class="resume-thumb" id="resumeThumb"></div>
+          <div class="resume-main">
+            <span class="resume-eyebrow">Resume</span>
+            <div class="resume-title" id="resumeTitle"></div>
+            <div class="resume-sub" id="resumeSub"></div>
+          </div>
+          <span class="resume-play"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M7 5.5a1 1 0 0 1 1.5-.87l11 6.5a1 1 0 0 1 0 1.74l-11 6.5A1 1 0 0 1 7 18.5v-13Z"/></svg></span>
+        </button>
+
+        <section class="section" id="idleHistorySection" hidden>
+          <div class="sec-head"><span class="sec-label">Jump back in</span><button class="link-btn" id="idle-clear">Clear</button></div>
+          <div class="rail" id="idleHistory"></div>
+        </section>
+
+        <section class="section" id="myListSection" hidden>
+          <div class="sec-head"><span class="sec-label">Watching on MyAnimeList</span></div>
+          <div class="rail" id="myListRail"></div>
+        </section>
+
+        <section class="section" id="seasonalSection" hidden>
+          <div class="sec-head"><span class="sec-label">Trending this season</span></div>
+          <div class="rail" id="seasonalRail"></div>
+        </section>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span class="stat-txt" id="stats">No skips yet</span>
+      <div class="links">
+        <button class="link-btn" id="open-recent">Recent</button>
+        <button class="link-btn" id="open-settings2">Settings</button>
+      </div>
+    </footer>
+
+    <!-- ───────── Settings slide-over ───────── -->
+    <div class="overlay" id="settingsView" hidden>
+      <div class="ov-bar">
+        <button class="ov-back" id="set-back" aria-label="Back"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+        <span class="ov-title">Settings</span>
+      </div>
+      <div class="ov-scroll">
+        <div class="set-section">
+          <div class="sec-label">Skip method</div>
+          <label class="set-radio"><input type="radio" name="set-mode" value="seek" /><span class="set-radio-dot"></span><span class="set-radio-main"><span class="set-radio-title">Smart seek</span><span class="set-radio-desc">Jumps instantly using Crunchyroll's skip timings; falls back to the native button.</span></span></label>
+          <label class="set-radio"><input type="radio" name="set-mode" value="click" /><span class="set-radio-dot"></span><span class="set-radio-main"><span class="set-radio-title">Click native button</span><span class="set-radio-desc">Only clicks Crunchyroll's own Skip button when it appears.</span></span></label>
+        </div>
+        <div class="set-section">
+          <div class="sec-label">Auto-skip segments</div>
+          <div class="set-row"><div class="set-row-main"><div class="set-row-title">Intro</div><div class="set-row-desc">The opening theme / OP.</div></div><label class="switch sm"><input type="checkbox" id="set-skip-intro" /><span class="slider"></span></label></div>
+          <div class="set-row"><div class="set-row-main"><div class="set-row-title">Recap</div><div class="set-row-desc">"Previously on…" catch-up segments.</div></div><label class="switch sm"><input type="checkbox" id="set-skip-recap" /><span class="slider"></span></label></div>
+          <div class="set-row"><div class="set-row-main"><div class="set-row-title">Outro / Credits</div><div class="set-row-desc">The ending theme / ED.</div></div><label class="switch sm"><input type="checkbox" id="set-skip-credits" /><span class="slider"></span></label></div>
+          <div class="set-row"><div class="set-row-main"><div class="set-row-title">Next-episode preview</div><div class="set-row-desc">The teaser shown after the credits.</div></div><label class="switch sm"><input type="checkbox" id="set-skip-preview" /><span class="slider"></span></label></div>
+        </div>
+        <div class="set-section">
+          <div class="sec-label">Playback</div>
+          <div class="set-row"><div class="set-row-main"><div class="set-row-title">Auto-play next</div><div class="set-row-desc">Continue to the next episode automatically.</div></div><label class="switch sm"><input type="checkbox" id="set-autoNext" /><span class="slider"></span></label></div>
+          <div class="set-row"><div class="set-row-main"><div class="set-row-title">Keep watching</div><div class="set-row-desc">Dismiss "still watching?" prompts during long sessions.</div></div><label class="switch sm"><input type="checkbox" id="set-keepWatching" /><span class="slider"></span></label></div>
+          <div class="set-row"><div class="set-row-main"><div class="set-row-title">Show undo toast</div><div class="set-row-desc">A brief "Skipped intro — Undo" after each skip.</div></div><label class="switch sm"><input type="checkbox" id="set-showToast" /><span class="slider"></span></label></div>
+        </div>
+        <div class="set-section">
+          <div class="sec-label">MyAnimeList</div>
+          <div class="set-mal">
+            <span class="mal-badge">MAL</span>
+            <div class="set-mal-main"><div class="set-mal-title" id="set-mal-status">Not connected</div><div class="set-mal-sub">Sign in once on MyAnimeList.</div></div>
+            <button class="set-btn" id="set-connect">Connect</button>
+            <button class="set-btn ghost" id="set-disconnect" hidden>Disconnect</button>
+          </div>
+          <div class="set-row"><div class="set-row-main"><div class="set-row-title">Sync watched episodes</div><div class="set-row-desc">Keep MAL on the episode you're watching.</div></div><label class="switch sm"><input type="checkbox" id="set-malEnabled" /><span class="slider"></span></label></div>
+          <div id="set-mappings-wrap" hidden><div class="set-sub-label">Show → MAL matches</div><div id="set-mappings"></div></div>
+        </div>
+        <div class="set-section">
+          <div class="sec-label">About</div>
+          <div class="set-about">Crunchy Companion · v0.1.0 · MIT</div>
+          <div class="set-links">
+            <a class="set-link" href="https://github.com/Donatoni/crunchy-companion/issues" target="_blank" rel="noopener">Report an issue</a>
+            <a class="set-link" href="https://github.com/Donatoni/crunchy-companion" target="_blank" rel="noopener">Source</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ───────── Recent ───────── -->
+    <div class="overlay" id="recentView" hidden>
+      <div class="ov-bar">
+        <button class="ov-back" id="rec-back" aria-label="Back"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+        <span class="ov-title">Continue watching</span>
+        <button class="link-btn" id="rec-clear">Clear</button>
+      </div>
+      <div class="ov-scroll" id="rec-list"></div>
+    </div>
+
+    <script src="./sidepanel.js"></script>
+  </body>
+</html>

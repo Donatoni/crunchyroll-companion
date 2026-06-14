@@ -2,9 +2,10 @@
  * Minimal MyAnimeList API v2 client.
  *
  * MAL uses OAuth2 authorization-code + PKCE. Public clients (app type "other")
- * need no client secret. We use code_challenge_method=plain (challenge ==
- * verifier), which MAL supports. All requests are made from contexts that hold
- * host_permissions for *.myanimelist.net, so CORS does not apply.
+ * need no client secret. We use code_challenge_method=S256 (challenge ==
+ * base64url(SHA-256(verifier))) for interception protection. All requests are
+ * made from contexts that hold host_permissions for *.myanimelist.net, so CORS
+ * does not apply.
  */
 import { MAL_CLIENT_ID } from './mal-config';
 
@@ -43,11 +44,25 @@ export interface MalAnime {
 
 /** PKCE verifier: 43–128 chars from the unreserved set. */
 export function randomVerifier(): string {
+  // 64-char alphabet so a byte maps to a character with no modulo bias.
   const chars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   const bytes = new Uint8Array(96);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => chars[b % chars.length]).join('');
+  return Array.from(bytes, (b) => chars[b & 63]).join('');
+}
+
+/** base64url (no padding) of raw bytes. */
+function base64Url(bytes: Uint8Array): string {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** PKCE S256 code challenge: base64url(SHA-256(verifier)). */
+export async function pkceChallenge(verifier: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+  return base64Url(new Uint8Array(digest));
 }
 
 export function authorizeUrl(
@@ -59,7 +74,7 @@ export function authorizeUrl(
     response_type: 'code',
     client_id: MAL_CLIENT_ID,
     code_challenge: codeChallenge,
-    code_challenge_method: 'plain',
+    code_challenge_method: 'S256',
     redirect_uri: redirectUri,
     state,
   });
@@ -74,10 +89,13 @@ async function postToken(body: URLSearchParams): Promise<MalToken> {
   });
   if (!res.ok) throw new Error(`MAL token HTTP ${res.status}`);
   const j = await res.json();
+  // MAL always returns expires_in (seconds); default to 1h if it's ever absent
+  // so a NaN expiry doesn't force a refresh on every call.
+  const expiresIn = Number(j.expires_in) || 3600;
   return {
     access: j.access_token,
     refresh: j.refresh_token,
-    expiresAt: Date.now() + Number(j.expires_in) * 1000,
+    expiresAt: Date.now() + expiresIn * 1000,
   };
 }
 
@@ -446,24 +464,4 @@ export async function setMyListStatus(
     const detail = await res.text().catch(() => '');
     throw new Error(`HTTP ${res.status} ${detail}`.trim().slice(0, 180));
   }
-}
-
-export async function updateProgress(
-  access: string,
-  animeId: number,
-  episodes: number,
-  completed: boolean,
-): Promise<void> {
-  const res = await fetch(`${API}/anime/${animeId}/my_list_status`, {
-    method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${access}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      num_watched_episodes: String(episodes),
-      status: completed ? 'completed' : 'watching',
-    }),
-  });
-  if (!res.ok) throw new Error(`MAL update HTTP ${res.status}`);
 }

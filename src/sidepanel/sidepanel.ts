@@ -265,7 +265,7 @@ async function loadCharacters(animeId: number): Promise<void> {
   for (const c of chars) {
     const el = document.createElement('div');
     el.className = 'char';
-    el.innerHTML = `<div class="av"></div><div class="cn"></div><div class="cr">${(c.role || '').toUpperCase()}</div>`;
+    el.innerHTML = `<div class="av"></div><div class="cn"></div><div class="cr">${esc((c.role || '').toUpperCase())}</div>`;
     setBg(el.querySelector('.av')!, c.image);
     el.querySelector<HTMLElement>('.cn')!.textContent = c.name;
     charactersRail.appendChild(el);
@@ -453,16 +453,29 @@ async function saveMal(patch: MalPatch): Promise<void> {
   }
 }
 
+/**
+ * Build the patch for a manual episode-count edit, including any status flip:
+ *  - reaching the finale marks the entry COMPLETED, and
+ *  - dropping below the finale un-completes it (back to WATCHING) instead of
+ *    leaving a contradictory "completed" entry with watched < total.
+ */
+function episodeEditPatch(n: number): MalPatch {
+  const patch: MalPatch = { num_watched_episodes: n };
+  if (malTotal && n >= malTotal) {
+    patch.status = 'completed';
+  } else if (malResp?.status === 'completed') {
+    patch.status = 'watching';
+  }
+  return patch;
+}
+
 epMinus.addEventListener('click', () => {
   const cur = Number(epVal.textContent) || 0;
-  if (cur > 0) void saveMal({ num_watched_episodes: cur - 1 });
+  if (cur > 0) void saveMal(episodeEditPatch(cur - 1));
 });
 epPlus.addEventListener('click', () => {
   const cur = Number(epVal.textContent) || 0;
-  const n = cur + 1;
-  const patch: MalPatch = { num_watched_episodes: n };
-  if (malTotal && n >= malTotal) patch.status = 'completed';
-  void saveMal(patch);
+  void saveMal(episodeEditPatch(cur + 1));
 });
 
 // Type an episode directly into the field.
@@ -489,11 +502,7 @@ epVal.addEventListener('blur', () => {
   if (malTotal != null) n = Math.min(n, malTotal);
   n = Math.max(0, n);
   epVal.textContent = String(n);
-  if (n !== cur) {
-    const patch: MalPatch = { num_watched_episodes: n };
-    if (malTotal && n >= malTotal) patch.status = 'completed';
-    void saveMal(patch);
-  }
+  if (n !== cur) void saveMal(episodeEditPatch(n));
 });
 
 // status dropdown (built once)
@@ -899,6 +908,7 @@ $('#open-settings2').addEventListener('click', openSettings);
 $('#set-back').addEventListener('click', () => {
   settingsView.hidden = true;
   lastMetaKey = ''; // force MAL re-fetch (connection/sync may have changed)
+  homeLoaded = false; // re-pull My List/Seasonal in case MAL was just connected
   void refresh();
 });
 

@@ -12,16 +12,78 @@ function matchWatch(url: string): EpisodeContext | null {
 }
 
 /**
+ * Episode id the parent watch frame told us about (player iframe only). Preferred
+ * over `document.referrer` because the referrer is fixed at iframe creation and
+ * goes stale when Crunchyroll auto-advances via the SPA and reuses the iframe.
+ */
+let postedEpisodeId: string | null = null;
+
+/**
  * Extract the episode id from a /watch/{episodeId}/slug URL.
  *
  * The actual <video> lives in a cross-origin player iframe whose own URL has no
- * episode id — but the parent watch page is its `document.referrer`, so we fall
- * back to that. This lets the seek engine work from inside the iframe (where it
- * can reach the video). If the referrer is stripped, we return null and the DOM
- * fallback (clicking the native skip button) takes over.
+ * episode id. We resolve it from (in order): this frame's own URL, the episode
+ * id broadcast by the parent watch frame, then `document.referrer` as a last
+ * resort. If none resolve, we return null and the DOM fallback (clicking the
+ * native skip button) takes over.
  */
 export function parseEpisode(url: string = location.href): EpisodeContext | null {
-  return matchWatch(url) ?? (document.referrer ? matchWatch(document.referrer) : null);
+  return (
+    matchWatch(url) ??
+    (postedEpisodeId ? { episodeId: postedEpisodeId, url } : null) ??
+    (document.referrer ? matchWatch(document.referrer) : null)
+  );
+}
+
+/**
+ * Cross-frame episode handshake. The top watch frame broadcasts the current
+ * episode id to its child frames; a player iframe requests it on load and
+ * adopts it (firing a location-change so the session re-attaches with the
+ * correct episode's skip data). Targets are '*' since the player iframe is
+ * cross-origin; messages are tagged and ignored otherwise.
+ */
+export function initFrameEpisodeSync(): void {
+  window.addEventListener('message', (e: MessageEvent) => {
+    const d = e.data;
+    if (!d || typeof d !== 'object') return;
+    if (d.source === 'crunchy-companion' && typeof d.episodeId === 'string') {
+      if (d.episodeId !== postedEpisodeId) {
+        postedEpisodeId = d.episodeId;
+        window.dispatchEvent(new Event('crunchy-companion:locationchange'));
+      }
+    } else if (d.source === 'crunchy-companion-req' && e.source) {
+      const id = matchWatch(location.href)?.episodeId;
+      if (id) {
+        try {
+          (e.source as Window).postMessage({ source: 'crunchy-companion', episodeId: id }, '*');
+        } catch {
+          /* frame went away */
+        }
+      }
+    }
+  });
+
+  // If we're a child frame (the player iframe), ask the parent for the id now.
+  if (window.top !== window) {
+    try {
+      window.parent.postMessage({ source: 'crunchy-companion-req' }, '*');
+    } catch {
+      /* cross-origin parent unreachable — referrer fallback still applies */
+    }
+  }
+}
+
+/** Top watch frame: push the current episode id down to child player frames. */
+export function broadcastEpisodeToFrames(): void {
+  const id = matchWatch(location.href)?.episodeId;
+  if (!id) return;
+  for (let i = 0; i < window.frames.length; i++) {
+    try {
+      window.frames[i]?.postMessage({ source: 'crunchy-companion', episodeId: id }, '*');
+    } catch {
+      /* cross-origin child — postMessage with '*' still delivers; ignore */
+    }
+  }
 }
 
 type Handler = (ctx: EpisodeContext | null) => void;

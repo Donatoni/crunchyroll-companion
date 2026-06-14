@@ -7,6 +7,7 @@ import type {
 import { parseSkipEvents, skipEventsUrl } from '@/shared/skip-events';
 import type { SkipSegment, TrackerMeta } from '@/shared/types';
 import {
+  clearToken,
   getMapping,
   getTokenData,
   RESOLVER_VERSION,
@@ -25,6 +26,7 @@ import {
   getSeasonal,
   getUserList,
   getUserName,
+  pkceChallenge,
   randomVerifier,
   refresh,
   searchAnime,
@@ -45,18 +47,31 @@ chrome.sidePanel
 // ---- skip-events fetch (avoids content-script CORS) -------------------------
 
 const skipCache = new Map<string, SkipSegment[]>();
+// In-flight requests, so concurrent frames asking for the same episode share one
+// fetch instead of each hitting the network before the cache populates.
+const skipInflight = new Map<string, Promise<FetchSkipEventsResponse>>();
 
 async function fetchSkipEvents(episodeId: string): Promise<FetchSkipEventsResponse> {
   if (skipCache.has(episodeId)) return { ok: true, segments: skipCache.get(episodeId)! };
-  try {
-    const res = await fetch(skipEventsUrl(episodeId), { credentials: 'omit' });
-    if (!res.ok) return { ok: false, segments: [], error: `HTTP ${res.status}` };
-    const segments = parseSkipEvents(await res.json());
-    skipCache.set(episodeId, segments);
-    return { ok: true, segments };
-  } catch (err) {
-    return { ok: false, segments: [], error: err instanceof Error ? err.message : String(err) };
-  }
+  const inflight = skipInflight.get(episodeId);
+  if (inflight) return inflight;
+
+  const request = (async (): Promise<FetchSkipEventsResponse> => {
+    try {
+      const res = await fetch(skipEventsUrl(episodeId), { credentials: 'omit' });
+      if (!res.ok) return { ok: false, segments: [], error: `HTTP ${res.status}` };
+      const segments = parseSkipEvents(await res.json());
+      skipCache.set(episodeId, segments);
+      return { ok: true, segments };
+    } catch (err) {
+      return { ok: false, segments: [], error: err instanceof Error ? err.message : String(err) };
+    } finally {
+      skipInflight.delete(episodeId);
+    }
+  })();
+
+  skipInflight.set(episodeId, request);
+  return request;
 }
 
 // ---- tracker (cross-frame hub) ---------------------------------------------
@@ -103,10 +118,11 @@ function toast(tabId: number, text: string): void {
 async function startMalAuth(): Promise<{ ok: boolean; name?: string; error?: string }> {
   try {
     const redirectUri = chrome.identity.getRedirectURL();
-    const verifier = randomVerifier(); // PKCE "plain": challenge == verifier
+    const verifier = randomVerifier();
+    const challenge = await pkceChallenge(verifier); // PKCE S256
     const state = randomVerifier().slice(0, 16);
     const responseUrl = await chrome.identity.launchWebAuthFlow({
-      url: authorizeUrl(verifier, redirectUri, state),
+      url: authorizeUrl(challenge, redirectUri, state),
       interactive: true,
     });
     const params = new URLSearchParams((responseUrl ?? '').split('?')[1] ?? '');
@@ -132,6 +148,10 @@ async function validAccessToken(): Promise<string | null> {
     await setTokenData(fresh);
     return fresh.access;
   } catch {
+    // Refresh token is dead (revoked/expired). Clear the stored token so the UI
+    // reflects "not connected" and prompts a reconnect instead of silently
+    // no-op'ing every sync while still showing "Connected".
+    await clearToken();
     return null;
   }
 }

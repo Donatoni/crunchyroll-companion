@@ -8,7 +8,7 @@ import { SKIP_LABELS, type SkipSegment } from '@/shared/types';
 /**
  * Core auto-skip engine (seek mode).
  *
- * Attaches a throttled timeupdate listener and seeks past enabled segments. Each
+ * Attaches a timeupdate listener (fires ~4Hz) and seeks past enabled segments. Each
  * segment is skipped at most once ("consumed") so a user who manually rewinds
  * into a segment is not fought. "Undo" restores the playhead and permanently
  * un-consumes that segment for the rest of the episode.
@@ -66,7 +66,15 @@ export function attachSkipEngine(
   };
 
   video.addEventListener('timeupdate', onTimeUpdate);
+  // Backstop poll: in a background tab the rendering pipeline is throttled and
+  // `timeupdate` can fire sparsely, which would let a skip window slip past. A
+  // timer keeps the check running (the `consumed` set makes it idempotent with
+  // the event path). A playing tab is audible, so this isn't heavily throttled.
+  const pollId = window.setInterval(onTimeUpdate, 1000);
   return {
-    detach: () => video.removeEventListener('timeupdate', onTimeUpdate),
+    detach: () => {
+      video.removeEventListener('timeupdate', onTimeUpdate);
+      window.clearInterval(pollId);
+    },
   };
 }

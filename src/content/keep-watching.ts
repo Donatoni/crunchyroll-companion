@@ -75,8 +75,20 @@ export function startKeepWatching(enabled: () => boolean): KeepWatchingControlle
     dismissProfilePicker();
   };
 
+  // Coalesce mutation bursts so a noisy DOM doesn't run tick() (a full-document
+  // scan) hundreds of times a second.
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.setTimeout(() => {
+      scheduled = false;
+      tick();
+    }, 250);
+  };
+
   // These prompts don't always arrive via observable mutations, so poll too.
-  const observer = new MutationObserver(() => tick());
+  const observer = new MutationObserver(schedule);
   observer.observe(document.documentElement, { childList: true, subtree: true });
   const interval = window.setInterval(tick, 2000);
   tick();

@@ -71,7 +71,24 @@ export function startDomSkip(enabled: () => boolean): DomSkipController {
     }
   };
 
-  const observer = new MutationObserver(() => tryClick());
+  // The player mutates attributes (progress bar, time, ARIA) many times per
+  // second; tryClick walks the whole document (incl. shadow roots), so running
+  // it on every mutation is expensive. Coalesce bursts behind a short timer.
+  // NOTE: a timer, not requestAnimationFrame — rAF callbacks are paused while
+  // the tab is in the background, which would stop click-mode auto-skip the
+  // moment you switch to another tab. setTimeout keeps firing (a playing tab is
+  // audible and so exempt from heavy background throttling).
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    window.setTimeout(() => {
+      scheduled = false;
+      tryClick();
+    }, 150);
+  };
+
+  const observer = new MutationObserver(schedule);
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,

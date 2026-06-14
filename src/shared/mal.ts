@@ -2,10 +2,10 @@
  * Minimal MyAnimeList API v2 client.
  *
  * MAL uses OAuth2 authorization-code + PKCE. Public clients (app type "other")
- * need no client secret. We use code_challenge_method=S256 (challenge ==
- * base64url(SHA-256(verifier))) for interception protection. All requests are
- * made from contexts that hold host_permissions for *.myanimelist.net, so CORS
- * does not apply.
+ * need no client secret. We use code_challenge_method=plain (challenge ==
+ * verifier). NOTE: MyAnimeList only supports the `plain` method — it rejects
+ * `S256`, so do NOT "upgrade" this. All requests are made from contexts that
+ * hold host_permissions for *.myanimelist.net, so CORS does not apply.
  */
 import { MAL_CLIENT_ID } from './mal-config';
 
@@ -52,19 +52,6 @@ export function randomVerifier(): string {
   return Array.from(bytes, (b) => chars[b & 63]).join('');
 }
 
-/** base64url (no padding) of raw bytes. */
-function base64Url(bytes: Uint8Array): string {
-  let bin = '';
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-/** PKCE S256 code challenge: base64url(SHA-256(verifier)). */
-export async function pkceChallenge(verifier: string): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
-  return base64Url(new Uint8Array(digest));
-}
-
 export function authorizeUrl(
   codeChallenge: string,
   redirectUri: string,
@@ -74,7 +61,7 @@ export function authorizeUrl(
     response_type: 'code',
     client_id: MAL_CLIENT_ID,
     code_challenge: codeChallenge,
-    code_challenge_method: 'S256',
+    code_challenge_method: 'plain', // MAL only supports `plain`, not `S256`
     redirect_uri: redirectUri,
     state,
   });

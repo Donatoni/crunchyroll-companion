@@ -26,7 +26,6 @@ import {
   getSeasonal,
   getUserList,
   getUserName,
-  pkceChallenge,
   randomVerifier,
   refresh,
   searchAnime,
@@ -118,11 +117,10 @@ function toast(tabId: number, text: string): void {
 async function startMalAuth(): Promise<{ ok: boolean; name?: string; error?: string }> {
   try {
     const redirectUri = chrome.identity.getRedirectURL();
-    const verifier = randomVerifier();
-    const challenge = await pkceChallenge(verifier); // PKCE S256
+    const verifier = randomVerifier(); // PKCE "plain": challenge == verifier
     const state = randomVerifier().slice(0, 16);
     const responseUrl = await chrome.identity.launchWebAuthFlow({
-      url: authorizeUrl(challenge, redirectUri, state),
+      url: authorizeUrl(verifier, redirectUri, state),
       interactive: true,
     });
     const params = new URLSearchParams((responseUrl ?? '').split('?')[1] ?? '');

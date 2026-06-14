@@ -265,7 +265,7 @@ async function loadCharacters(animeId: number): Promise<void> {
   for (const c of chars) {
     const el = document.createElement('div');
     el.className = 'char';
-    el.innerHTML = `<div class="av"></div><div class="cn"></div><div class="cr">${(c.role || '').toUpperCase()}</div>`;
+    el.innerHTML = `<div class="av"></div><div class="cn"></div><div class="cr">${esc((c.role || '').toUpperCase())}</div>`;
     setBg(el.querySelector('.av')!, c.image);
     el.querySelector<HTMLElement>('.cn')!.textContent = c.name;
     charactersRail.appendChild(el);
@@ -899,6 +899,7 @@ $('#open-settings2').addEventListener('click', openSettings);
 $('#set-back').addEventListener('click', () => {
   settingsView.hidden = true;
   lastMetaKey = ''; // force MAL re-fetch (connection/sync may have changed)
+  homeLoaded = false; // re-pull My List/Seasonal in case MAL was just connected
   void refresh();
 });
 

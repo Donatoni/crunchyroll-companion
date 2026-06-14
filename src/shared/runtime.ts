@@ -19,16 +19,3 @@ export function isExtensionContextValid(): boolean {
     return false;
   }
 }
-
-/**
- * Run a chrome API call, swallowing the synchronous "context invalidated" throw
- * (and any rejection) that happens when the extension has been reloaded.
- */
-export function safeRuntime<T>(fn: () => T): T | undefined {
-  if (!isExtensionContextValid()) return undefined;
-  try {
-    return fn();
-  } catch {
-    return undefined;
-  }
-}

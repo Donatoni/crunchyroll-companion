@@ -71,7 +71,20 @@ export function startDomSkip(enabled: () => boolean): DomSkipController {
     }
   };
 
-  const observer = new MutationObserver(() => tryClick());
+  // The player mutates attributes (progress bar, time, ARIA) many times per
+  // second; tryClick walks the whole document (incl. shadow roots), so running
+  // it on every mutation is expensive. Coalesce bursts into one sweep per frame.
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => {
+      scheduled = false;
+      tryClick();
+    });
+  };
+
+  const observer = new MutationObserver(schedule);
   observer.observe(document.documentElement, {
     childList: true,
     subtree: true,

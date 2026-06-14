@@ -8,7 +8,7 @@ import { SKIP_LABELS, type SkipSegment } from '@/shared/types';
 /**
  * Core auto-skip engine (seek mode).
  *
- * Attaches a throttled timeupdate listener and seeks past enabled segments. Each
+ * Attaches a timeupdate listener (fires ~4Hz) and seeks past enabled segments. Each
  * segment is skipped at most once ("consumed") so a user who manually rewinds
  * into a segment is not fought. "Undo" restores the playhead and permanently
  * un-consumes that segment for the rest of the episode.

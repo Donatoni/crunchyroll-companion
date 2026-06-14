@@ -4,7 +4,12 @@ import {
   onSettingsChanged,
   type Settings,
 } from '@/shared/settings';
-import { onEpisodeChange, parseEpisode } from './navigation';
+import {
+  broadcastEpisodeToFrames,
+  initFrameEpisodeSync,
+  onEpisodeChange,
+  parseEpisode,
+} from './navigation';
 import { waitForVideo } from './player';
 import { getSkipSegments } from './skip-api';
 import { attachSkipEngine } from './skip-engine';
@@ -21,6 +26,10 @@ import { log } from '@/shared/log';
 import type { EpisodeContext } from '@/shared/types';
 
 log('content script loaded in', location.href);
+
+// Cross-frame episode handshake: lets the player iframe learn the current
+// episode id from the top frame instead of trusting its stale referrer.
+initFrameEpisodeSync();
 
 /**
  * True when this frame is currently showing a watch page (URL has /watch/).
@@ -139,7 +148,12 @@ function startSession(ctx: EpisodeContext | null): void {
 
   // Top frame: scrape episode metadata for the tracker + history. The page's
   // JSON-LD lands a beat after navigation, so poll until it's present.
-  if (isTopWatch() && ctx) captureEpisode(ctx);
+  if (isTopWatch() && ctx) {
+    captureEpisode(ctx);
+    // Tell the player iframe which episode is now active so its seek engine
+    // doesn't keep using the previous episode's skip data after an auto-advance.
+    broadcastEpisodeToFrames();
+  }
 
   const cancelWait = waitForVideo(async (video) => {
     // When we have an episode id, try the skip-events API for precise seeking.

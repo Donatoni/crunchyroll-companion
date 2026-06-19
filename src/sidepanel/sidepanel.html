@@ -51,16 +51,16 @@
             <div class="pickrow">
               <span class="lbl">Status</span>
               <div class="dd" id="statusDd">
-                <button class="pill" id="statusBtn"><span class="sd" id="statusDot"></span><span id="statusLabel">Watching</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" /></svg></button>
-                <div class="dd-menu" id="statusMenu" hidden></div>
+                <button class="pill" id="statusBtn" aria-haspopup="menu" aria-expanded="false"><span class="sd" id="statusDot"></span><span id="statusLabel">Watching</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" /></svg></button>
+                <div class="dd-menu" id="statusMenu" role="menu" hidden></div>
               </div>
             </div>
             <div class="row-divide"></div>
             <div class="pickrow">
               <span class="lbl">Your rating</span>
               <div class="dd" id="scoreDd">
-                <button class="stars" id="scoreBtn" aria-label="Set rating"></button>
-                <div class="dd-menu score-menu" id="scoreMenu" hidden></div>
+                <button class="stars" id="scoreBtn" aria-label="Set rating" aria-haspopup="menu" aria-expanded="false"></button>
+                <div class="dd-menu score-menu" id="scoreMenu" role="menu" hidden></div>
               </div>
             </div>
             <a class="mal-link" id="malLink" target="_blank" rel="noopener">View on MyAnimeList

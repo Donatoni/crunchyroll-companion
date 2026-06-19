@@ -17,16 +17,12 @@ import {
   type TrackerMapping,
 } from '@/shared/tracker-store';
 import {
-  authorizeUrl,
-  exchangeCode,
   getAnimeDetails,
   getAnimeStatus,
   getCharacters,
   getReviews,
   getSeasonal,
   getUserList,
-  getUserName,
-  randomVerifier,
   refresh,
   searchAnime,
   setMyListStatus,
@@ -106,34 +102,6 @@ function toast(tabId: number, text: string): void {
   void chrome.tabs
     .sendMessage<TrackerToastMessage>(tabId, { type: 'TRACKER_TOAST', text })
     .catch(() => {});
-}
-
-/**
- * Run the MyAnimeList OAuth (PKCE) flow and store the token. Lives here rather
- * than in the popup because `launchWebAuthFlow` opens a focused window that
- * closes the popup mid-flow; the service worker survives, so connecting from the
- * popup's settings modal still completes.
- */
-async function startMalAuth(): Promise<{ ok: boolean; name?: string; error?: string }> {
-  try {
-    const redirectUri = chrome.identity.getRedirectURL();
-    const verifier = randomVerifier(); // PKCE "plain": challenge == verifier
-    const state = randomVerifier().slice(0, 16);
-    const responseUrl = await chrome.identity.launchWebAuthFlow({
-      url: authorizeUrl(verifier, redirectUri, state),
-      interactive: true,
-    });
-    const params = new URLSearchParams((responseUrl ?? '').split('?')[1] ?? '');
-    if (params.get('state') !== state) throw new Error('State mismatch');
-    const code = params.get('code');
-    if (!code) throw new Error(params.get('error') ?? 'No authorization code');
-    const token = await exchangeCode(code, verifier, redirectUri);
-    await setTokenData(token);
-    const name = await getUserName(token.access).catch(() => undefined);
-    return { ok: true, name };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'error' };
-  }
 }
 
 /** Return a valid MAL access token, refreshing it if expired. */
@@ -368,9 +336,6 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
     case 'EPISODE_WATCHED':
       if (sender.tab?.id != null) void onEpisodeWatched(sender.tab.id, message.episodeId);
       return false;
-    case 'START_MAL_AUTH':
-      startMalAuth().then(sendResponse);
-      return true; // async response
     case 'GET_TAB_STATUS': {
       void (async () => {
         const meta = await getTabMeta(message.tabId);

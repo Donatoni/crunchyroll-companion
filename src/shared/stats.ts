@@ -16,7 +16,12 @@ export interface Stats {
 }
 
 function dayKey(ts = Date.now()): string {
-  return new Date(ts).toISOString().slice(0, 10);
+  // Build YYYY-MM-DD from LOCAL date parts so buckets align with the user's
+  // wall clock rather than UTC midnight. Existing UTC-keyed entries remain
+  // readable and the `< cutoff` string compare still works (same format).
+  const d = new Date(ts);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 export async function getStats(): Promise<Stats> {

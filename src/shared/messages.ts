@@ -144,20 +144,6 @@ export interface SetMalStatusRequest {
   };
 }
 
-/**
- * Popup -> worker: run the MyAnimeList OAuth flow. Done in the worker (not the
- * popup) because `launchWebAuthFlow` opens a focused window that closes the
- * popup — the worker survives, so the token still gets saved.
- */
-export interface StartMalAuthRequest {
-  type: 'START_MAL_AUTH';
-}
-export interface StartMalAuthResponse {
-  ok: boolean;
-  name?: string;
-  error?: string;
-}
-
 export type RuntimeMessage =
   | FetchSkipEventsRequest
   | EpisodeMetaMessage
@@ -165,7 +151,6 @@ export type RuntimeMessage =
   | TabStatusRequest
   | MalStatusRequest
   | SetMalStatusRequest
-  | StartMalAuthRequest
   | MalCharactersRequest
   | MalReviewsRequest
   | MyListRequest
@@ -231,12 +216,6 @@ export function setMalStatus(
     type: 'SET_MAL_STATUS',
     meta,
     patch,
-  });
-}
-
-export function startMalAuth(): Promise<StartMalAuthResponse> {
-  return chrome.runtime.sendMessage<StartMalAuthRequest, StartMalAuthResponse>({
-    type: 'START_MAL_AUTH',
   });
 }
 

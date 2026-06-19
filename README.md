@@ -1,7 +1,7 @@
 # Crunchy Companion
 
 An all-in-one enhancement extension for [Crunchyroll](https://www.crunchyroll.com)
-(Chrome / Edge, Manifest V3). Version **0.1.0**.
+(Chrome / Edge, Manifest V3). Version **0.2.2**.
 
 It lives in a persistent Chrome **side panel** that adapts to what you're doing:
 a live show companion while you watch, and a home dashboard everywhere else.

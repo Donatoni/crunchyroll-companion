@@ -132,7 +132,26 @@ function metaKey(m: TrackerMeta): string {
   return `${m.series}|${m.season}|${m.episode}`;
 }
 function setBg(el: HTMLElement, url: string | null | undefined): void {
-  el.style.backgroundImage = url ? `url("${url}")` : '';
+  if (!url) {
+    el.style.backgroundImage = '';
+    return;
+  }
+  // Strip characters that could break out of the CSS string / url() wrapper.
+  const safe = url.replace(/["\\\n\r()]/g, '');
+  el.style.backgroundImage = `url("${safe}")`;
+}
+
+/** Make a non-button element (a card <div>) keyboard-activatable. */
+function makeActivatable(el: HTMLElement, onActivate: () => void): void {
+  el.setAttribute('role', 'button');
+  el.tabIndex = 0;
+  el.addEventListener('click', onActivate);
+  el.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onActivate();
+    }
+  });
 }
 
 // ── hero ────────────────────────────────────────────────────────────
@@ -205,6 +224,14 @@ function renderDetails(r: MalStatusResponse): void {
   synopsisEl.classList.add('clamp');
   synMore.textContent = 'Read more';
   synopsisWrap.hidden = !syn;
+  // Only offer "Read more" when the text actually overflows the 4-line clamp.
+  // Measure on the next frame so layout has settled.
+  synMore.hidden = true;
+  if (syn) {
+    requestAnimationFrame(() => {
+      synMore.hidden = synopsisEl.scrollHeight <= synopsisEl.clientHeight;
+    });
+  }
 
   // seasons / related
   renderSeasons(r.related ?? []);
@@ -238,7 +265,7 @@ function renderSeasons(related: MalRelated[]): void {
     setBg(el.querySelector('.ph')!, r.picture);
     el.querySelector<HTMLElement>('.t')!.textContent = r.title;
     el.title = `${r.title}${r.relation ? ' — ' + r.relation : ''}`;
-    el.addEventListener('click', () => {
+    makeActivatable(el, () => {
       window.open(`https://myanimelist.net/anime/${r.id}`, '_blank', 'noopener');
     });
     seasonsRail.appendChild(el);
@@ -401,7 +428,7 @@ function applyMal(r: MalStatusResponse | undefined): void {
     progTotal.textContent = r.total ? `/ ${r.total} episodes` : 'episodes';
     const pct = r.total ? Math.round((watched / r.total) * 100) : 0;
     progBar.style.width = `${Math.min(100, pct)}%`;
-    progPct.textContent = r.total ? `${pct}%` : '';
+    progPct.textContent = r.total ? `${Math.min(100, pct)}%` : '';
     epVal.textContent = String(watched);
     epMinus.disabled = watched <= 0;
     epPlus.disabled = malTotal != null && watched >= malTotal;
@@ -425,19 +452,25 @@ function applyMal(r: MalStatusResponse | undefined): void {
 
 async function loadMal(): Promise<void> {
   if (!currentMeta) return;
+  const key = metaKey(currentMeta); // the show this request is for
   try {
-    applyMal(await requestMalStatus(currentMeta));
+    const r = await requestMalStatus(currentMeta);
+    if (lastMetaKey !== key) return; // show changed during the await — drop stale response
+    applyMal(r);
   } catch {
+    if (lastMetaKey !== key) return;
     applyMal({ ok: false, connected: false });
   }
 }
 
 async function saveMal(patch: MalPatch): Promise<void> {
   if (!currentMeta) return;
+  const key = metaKey(currentMeta); // the show this save is for
   malErr.hidden = true;
   malCard.style.opacity = '0.5';
   try {
     const r = await setMalStatus(currentMeta, patch);
+    if (lastMetaKey !== key) return; // show changed during the await — don't clobber it
     if (r?.ok) {
       // SET response lacks rich details — merge so we keep synopsis/seasons/etc.
       applyMal({ ...malResp, ...r });
@@ -637,7 +670,7 @@ async function renderIdleHistory(): Promise<void> {
       .filter(Boolean)
       .join(' ');
     el.title = it.series;
-    el.addEventListener('click', () => void openEpisode(it.url));
+    makeActivatable(el, () => void openEpisode(it.url));
     idleHistory.appendChild(el);
   }
 }
@@ -761,7 +794,7 @@ async function loadMyList(): Promise<void> {
         it.total ? `${it.watched} / ${it.total}` : `Ep ${it.watched}`,
         { progress: it.total ? it.watched / it.total : 0 },
       );
-      card.addEventListener('click', () => void openCrSearch(it.title));
+      makeActivatable(card, () => void openCrSearch(it.title));
       myListRail.appendChild(card);
     }
     myListSection.hidden = false;
@@ -778,7 +811,7 @@ async function loadSeasonal(): Promise<void> {
     seasonalRail.replaceChildren();
     for (const it of r.items) {
       const card = posterCard(it.picture, it.title, it.type ?? 'TV', { score: it.score });
-      card.addEventListener('click', () => void openCrSearch(it.title));
+      makeActivatable(card, () => void openCrSearch(it.title));
       seasonalRail.appendChild(card);
     }
     seasonalSection.hidden = false;

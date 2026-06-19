@@ -55,7 +55,8 @@ async function emitHtml(name) {
   let html = await readFile(r(`src/${name}/${name}.html`), 'utf8');
   html = html
     .replace(/<script[^>]*src="\.\/\w+\.ts"[^>]*><\/script>/, `<script src="./${name}.js"></script>`)
-    .replace(/href="\.\/(\w+\.css)"/, 'href="./$1"');
+    .replace(/href="\.\/(\w+\.css)"/, 'href="./$1"')
+    .replaceAll('__APP_VERSION__', version);
   await writeFile(r(`dist/${name}.html`), html);
   await cp(r(`src/${name}/${name}.css`), r(`dist/${name}.css`));
 }

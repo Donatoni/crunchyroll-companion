@@ -63,6 +63,7 @@ let currentMeta: TrackerMeta | null = null;
 let malResp: MalStatusResponse | undefined;
 let malTotal: number | null = null;
 let lastMetaKey = '';
+let idleRendered = false; // idle dashboard built? (guards 3s-poll rebuilds)
 let lastCharId: number | null = null;
 const charCache = new Map<number, MalCharacter[]>();
 let lastReviewId: number | null = null;
@@ -365,7 +366,9 @@ function setStatusControl(value: string): void {
   statusLabel.textContent = opt.label;
   statusDot.style.background = opt.dot;
   for (const el of statusMenu.querySelectorAll<HTMLElement>('.dd-opt')) {
-    el.classList.toggle('sel', el.dataset.value === opt.value);
+    const sel = el.dataset.value === opt.value;
+    el.classList.toggle('sel', sel);
+    el.setAttribute('aria-checked', String(sel));
   }
 }
 function setScoreControl(value: number): void {
@@ -391,7 +394,9 @@ function setScoreControl(value: number): void {
   num.innerHTML = value ? `${value}<span class="max">/10</span>` : '–';
   scoreBtn.append(row, num);
   for (const el of scoreMenu.querySelectorAll<HTMLElement>('.score-cell')) {
-    el.classList.toggle('sel', Number(el.dataset.score) === value);
+    const sel = Number(el.dataset.score) === value;
+    el.classList.toggle('sel', sel);
+    el.setAttribute('aria-checked', String(sel));
   }
 }
 
@@ -543,6 +548,8 @@ for (const o of MAL_STATUS) {
   const b = document.createElement('button');
   b.type = 'button';
   b.className = 'dd-opt';
+  b.setAttribute('role', 'menuitemradio');
+  b.setAttribute('aria-checked', 'false');
   b.dataset.value = o.value;
   b.innerHTML =
     `<span class="dd-dot" style="background:${o.dot}"></span>${o.label}` +
@@ -572,6 +579,8 @@ for (let n = 1; n <= 10; n++) {
   const c = document.createElement('button');
   c.type = 'button';
   c.className = 'score-cell';
+  c.setAttribute('role', 'menuitemradio');
+  c.setAttribute('aria-checked', 'false');
   c.dataset.score = String(n);
   c.textContent = String(n);
   c.addEventListener('click', () => {
@@ -593,21 +602,35 @@ scoreMenu.append(grid, clearBtn);
 function closeMenus(): void {
   statusMenu.hidden = true;
   scoreMenu.hidden = true;
+  statusBtn.setAttribute('aria-expanded', 'false');
+  scoreBtn.setAttribute('aria-expanded', 'false');
 }
-function toggleMenu(menu: HTMLElement): void {
+function toggleMenu(menu: HTMLElement, trigger: HTMLButtonElement): void {
   const willOpen = menu.hidden;
   closeMenus();
   if (willOpen) {
     menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
     statusMenu.querySelectorAll<HTMLElement>('.dd-opt').forEach((el) => {
       const chk = el.querySelector<HTMLElement>('.check');
       if (chk) chk.style.display = el.classList.contains('sel') ? '' : 'none';
     });
   }
 }
-statusBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(statusMenu); });
-scoreBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(scoreMenu); });
+statusBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(statusMenu, statusBtn); });
+scoreBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleMenu(scoreMenu, scoreBtn); });
 document.addEventListener('click', closeMenus);
+// Escape closes whichever menu is open and returns focus to its trigger.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (!statusMenu.hidden) {
+    closeMenus();
+    statusBtn.focus();
+  } else if (!scoreMenu.hidden) {
+    closeMenus();
+    scoreBtn.focus();
+  }
+});
 malNudge.addEventListener('click', openSettings);
 
 // ── status refresh (active tab) ─────────────────────────────────────
@@ -634,6 +657,7 @@ async function refresh(): Promise<void> {
   if (currentMeta) {
     idleView.hidden = true;
     watchingView.hidden = false;
+    idleRendered = false; // leaving idle — next idle entry re-renders fresh
     const key = metaKey(currentMeta);
     if (key !== lastMetaKey) {
       lastMetaKey = key;
@@ -645,9 +669,15 @@ async function refresh(): Promise<void> {
     watchingView.hidden = true;
     idleView.hidden = false;
     lastMetaKey = '';
-    void renderRun();
-    void renderResume();
-    void renderIdleHistory();
+    // Render the idle sections only on ENTERING idle, not on every 3s poll
+    // tick — rebuilding them resets the "Jump back in" rail's scroll. Live
+    // updates come from the storage.onChanged listener below.
+    if (!idleRendered) {
+      idleRendered = true;
+      void renderRun();
+      void renderResume();
+      void renderIdleHistory();
+    }
     loadHomeContent();
   }
 }
@@ -679,14 +709,19 @@ $('#idle-clear').addEventListener('click', async () => {
   await renderIdleHistory();
 });
 
+/** Open a previously-watched episode in a NEW tab so the user's current page is preserved. */
 async function openEpisode(url: string): Promise<void> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.id) await chrome.tabs.update(tab.id, { url });
+  await openInNewTab(url);
+}
+
+/** Open a URL in a NEW tab (for discovery — don't hijack the user's current tab). */
+async function openInNewTab(url: string): Promise<void> {
+  await chrome.tabs.create({ url });
 }
 
 /** Open a Crunchyroll search for a title (to find/resume a MAL/seasonal pick). */
 async function openCrSearch(title: string): Promise<void> {
-  await openEpisode(`https://www.crunchyroll.com/search?q=${encodeURIComponent(title)}`);
+  await openInNewTab(`https://www.crunchyroll.com/search?q=${encodeURIComponent(title)}`);
 }
 
 /** Build a portrait poster card with optional score badge / progress bar. */
@@ -963,6 +998,7 @@ $('#set-back').addEventListener('click', () => {
   settingsView.hidden = true;
   lastMetaKey = ''; // force MAL re-fetch (connection/sync may have changed)
   homeLoaded = false; // re-pull My List/Seasonal in case MAL was just connected
+  idleRendered = false; // re-render idle sections on return
   void refresh();
 });
 
@@ -1040,6 +1076,19 @@ chrome.tabs.onUpdated.addListener((_id, info) => {
   if (info.url || info.status === 'complete') scheduleRefresh();
 });
 window.setInterval(() => void refresh(), 3000);
+
+// Keep the idle dashboard live without polling: when history/stats change in
+// storage AND the idle view is on screen, re-run only the affected renders.
+// (The 3s poll no longer rebuilds these — see refresh()'s idle branch / B1.)
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== 'local' || idleView.hidden) return;
+  if (changes.stats) void renderRun();
+  if (changes.history) {
+    void renderRun(); // "shows" count + the avg-episode line read history too
+    void renderResume();
+    void renderIdleHistory();
+  }
+});
 
 // ── boot ────────────────────────────────────────────────────────────
 void (async () => {

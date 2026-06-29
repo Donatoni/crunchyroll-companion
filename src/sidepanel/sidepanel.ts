@@ -709,9 +709,9 @@ $('#idle-clear').addEventListener('click', async () => {
   await renderIdleHistory();
 });
 
+/** Open a previously-watched episode in a NEW tab so the user's current page is preserved. */
 async function openEpisode(url: string): Promise<void> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.id) await chrome.tabs.update(tab.id, { url });
+  await openInNewTab(url);
 }
 
 /** Open a URL in a NEW tab (for discovery — don't hijack the user's current tab). */

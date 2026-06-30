@@ -401,12 +401,14 @@ export async function getSeasonal(): Promise<SeasonalItem[]> {
       (d: {
         mal_id: number;
         title: string;
+        title_english?: string | null;
         images?: { jpg?: { image_url?: string; large_image_url?: string } };
         score?: number;
         type?: string;
       }) => ({
         id: d.mal_id,
-        title: d.title,
+        // Prefer the official English title; fall back to the romaji default.
+        title: d.title_english || d.title,
         picture: d.images?.jpg?.large_image_url ?? d.images?.jpg?.image_url ?? null,
         score: d.score ?? null,
         type: d.type ?? null,

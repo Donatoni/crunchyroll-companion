@@ -179,7 +179,14 @@
             <button class="set-btn ghost" id="set-disconnect" hidden>Disconnect</button>
           </div>
           <div class="set-row"><div class="set-row-main"><div class="set-row-title">Sync watched episodes</div><div class="set-row-desc">Keep MAL on the episode you're watching.</div></div><label class="switch sm"><input type="checkbox" id="set-malEnabled" /><span class="slider"></span></label></div>
-          <div id="set-mappings-wrap" hidden><div class="set-sub-label">Show → MAL matches</div><div id="set-mappings"></div></div>
+          <div id="set-mappings-wrap" hidden>
+            <button type="button" class="set-sub-toggle" id="set-mappings-toggle" aria-expanded="false" aria-controls="set-mappings">
+              <span class="set-sub-label">Show → MAL matches</span>
+              <span class="set-map-count" id="set-mappings-count"></span>
+              <svg class="set-sub-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            </button>
+            <div id="set-mappings" hidden></div>
+          </div>
         </div>
         <div class="set-section">
           <div class="sec-label">About</div>
@@ -198,6 +205,19 @@
         <button class="ov-back" id="rec-back" aria-label="Back"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
         <span class="ov-title">Continue watching</span>
         <button class="link-btn" id="rec-clear">Clear</button>
+      </div>
+      <div class="ov-tools">
+        <div class="rec-search">
+          <svg class="rec-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" /><path d="M21 21l-4.2-4.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" /></svg>
+          <input id="rec-search" type="search" placeholder="Search shows…" aria-label="Search continue watching" autocomplete="off" />
+        </div>
+        <select id="rec-sort" class="rec-select" aria-label="Sort order">
+          <option value="recent">Recent</option>
+          <option value="alpha">A–Z</option>
+        </select>
+        <select id="rec-genre" class="rec-select" aria-label="Filter by genre" hidden>
+          <option value="">All genres</option>
+        </select>
       </div>
       <div class="ov-scroll" id="rec-list"></div>
     </div>

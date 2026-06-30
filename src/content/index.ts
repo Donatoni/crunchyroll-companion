@@ -120,7 +120,7 @@ function captureEpisode(ctx: EpisodeContext): void {
       // full window instead of stopping at the first (possibly stale) value —
       // the tracker only moves forward, so a lingering stale number would
       // silently skip the increment.
-      const key = `${meta.season}|${meta.episode}|${meta.episodeTitle}`;
+      const key = `${meta.series}|${meta.season}|${meta.episode}|${meta.episodeTitle}`;
       if (key !== lastKey) {
         lastKey = key;
         log('episode meta', `${meta.series} S${meta.season} E${meta.episode}`);

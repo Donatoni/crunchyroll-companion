@@ -141,8 +141,6 @@ export function extractMeta(episodeId: string): TrackerMeta | null {
   const ids = fromTestIds();
   const og = fromOgTitle();
   const title = fromDocTitle();
-  const series = ld?.series || ids.series || '';
-  if (!series) return null;
 
   // Trust the JSON-LD numbers only when they actually describe THIS episode.
   // On SPA auto-advance the JSON-LD keeps the previous episode's data, which is
@@ -150,6 +148,16 @@ export function extractMeta(episodeId: string): TrackerMeta | null {
   // old episode number forever). When its url doesn't reference the current
   // episode id, drop its episode/season and lean on the fresher DOM sources.
   const ldFresh = ld ? !ld.sourceUrl || ld.sourceUrl.includes(episodeId) : false;
+
+  // Series, like the numbers, must be FRESH. The series name only comes from the
+  // JSON-LD (the `current-media-*` testids are gone), so a stale block — after an
+  // SPA navigation to a *different* show — names the PREVIOUS series. Recording
+  // with it is corrupting: history dedups by series, so this episode's URL would
+  // be filed under the other show's name, overwriting that entry and making it
+  // open the wrong video. When no fresh series source exists yet, return null so
+  // `captureEpisode` keeps polling until the page settles on the real one.
+  const series = (ldFresh ? ld?.series : '') || ids.series || '';
+  if (!series) return null;
   const ldEpisode = ldFresh ? (ld?.episode ?? null) : null;
   const ldSeason = ldFresh ? (ld?.season ?? null) : null;
 

@@ -155,6 +155,76 @@ function makeActivatable(el: HTMLElement, onActivate: () => void): void {
   });
 }
 
+/**
+ * Make a horizontal rail navigable with a mouse: vertical wheel scrolls it
+ * sideways, and click-drag pans it (a trackpad can already swipe horizontally,
+ * and the scrollbar is hidden). A drag past a small threshold swallows the
+ * trailing click so dragging across a card doesn't also activate it.
+ */
+function makeRailScrollable(rail: HTMLElement): void {
+  const overflowing = () => rail.scrollWidth > rail.clientWidth + 1;
+
+  rail.addEventListener(
+    'wheel',
+    (e) => {
+      // Only hijack a mostly-vertical wheel, and only when there's room to pan.
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX) || !overflowing()) return;
+      rail.scrollLeft += e.deltaY;
+      e.preventDefault();
+    },
+    { passive: false },
+  );
+
+  const DRAG_THRESHOLD = 5; // px before a press becomes a pan (vs. a click)
+  let down = false;
+  let dragged = false;
+  let startX = 0;
+  let startScroll = 0;
+
+  rail.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 || !overflowing()) return;
+    down = true;
+    dragged = false;
+    startX = e.clientX;
+    startScroll = rail.scrollLeft;
+  });
+  rail.addEventListener('pointermove', (e) => {
+    if (!down) return;
+    const dx = e.clientX - startX;
+    if (!dragged && Math.abs(dx) > DRAG_THRESHOLD) {
+      dragged = true;
+      rail.setPointerCapture(e.pointerId);
+      rail.classList.add('dragging');
+    }
+    if (dragged) {
+      rail.scrollLeft = startScroll - dx;
+      e.preventDefault();
+    }
+  });
+  const endDrag = (e: PointerEvent) => {
+    if (!down) return;
+    down = false;
+    if (rail.hasPointerCapture(e.pointerId)) rail.releasePointerCapture(e.pointerId);
+    rail.classList.remove('dragging');
+  };
+  rail.addEventListener('pointerup', endDrag);
+  rail.addEventListener('pointercancel', endDrag);
+  // Capture phase so this runs before a card's own click handler and can cancel it.
+  rail.addEventListener(
+    'click',
+    (e) => {
+      if (dragged) {
+        e.stopPropagation();
+        e.preventDefault();
+        dragged = false;
+      }
+    },
+    true,
+  );
+}
+
+[seasonsRail, charactersRail, idleHistory, myListRail, seasonalRail].forEach(makeRailScrollable);
+
 // ── hero ────────────────────────────────────────────────────────────
 function renderHero(): void {
   if (!currentMeta) return;
@@ -345,7 +415,7 @@ async function loadReviews(animeId: number): Promise<void> {
     more.className = 'review-more';
     more.textContent = 'Read full review →';
     card.append(top, text, more);
-    if (rv.url) card.addEventListener('click', () => window.open(rv.url, '_blank', 'noopener'));
+    if (rv.url) makeActivatable(card, () => window.open(rv.url, '_blank', 'noopener'));
     reviewsList.appendChild(card);
   }
   if (data.reviews.length && data.allUrl) {

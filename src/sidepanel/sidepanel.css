@@ -139,6 +139,9 @@ body {
 
 /* ── rails ── */
 .rail { display: flex; gap: 10px; overflow-x: auto; margin: 0 -16px; padding: 2px 16px 6px; }
+.rail.dragging { cursor: grabbing; user-select: none; }
+/* While panning a rail, don't let the cards intercept the pointer (keeps the drag smooth and prevents accidental hovers/clicks). */
+.rail.dragging > * { pointer-events: none; }
 .season { flex: 0 0 auto; width: 94px; cursor: pointer; }
 .season .ph { width: 94px; height: 132px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-3) center/cover no-repeat; transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
 .season:hover .ph { transform: translateY(-2px); border-color: var(--line-strong); box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.7); }

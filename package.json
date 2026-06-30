@@ -1,5 +1,5 @@
 {
-  "name": "crunchy-companion",
+  "name": "crunchyroll-companion",
   "version": "0.2.5",
   "description": "All-in-one Crunchyroll enhancement extension: auto-skip intro/outro/recap/preview and auto-play next episode.",
   "type": "module",

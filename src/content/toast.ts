@@ -4,7 +4,7 @@
  * collides with Crunchyroll's own CSS.
  */
 
-const CONTAINER_ID = 'crunchy-companion-toast-root';
+const CONTAINER_ID = 'crunchyroll-companion-toast-root';
 
 function ensureContainer(): HTMLElement {
   let el = document.getElementById(CONTAINER_ID);

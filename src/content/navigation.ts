@@ -46,16 +46,16 @@ export function initFrameEpisodeSync(): void {
   window.addEventListener('message', (e: MessageEvent) => {
     const d = e.data;
     if (!d || typeof d !== 'object') return;
-    if (d.source === 'crunchy-companion' && typeof d.episodeId === 'string') {
+    if (d.source === 'crunchyroll-companion' && typeof d.episodeId === 'string') {
       if (d.episodeId !== postedEpisodeId) {
         postedEpisodeId = d.episodeId;
-        window.dispatchEvent(new Event('crunchy-companion:locationchange'));
+        window.dispatchEvent(new Event('crunchyroll-companion:locationchange'));
       }
-    } else if (d.source === 'crunchy-companion-req' && e.source) {
+    } else if (d.source === 'crunchyroll-companion-req' && e.source) {
       const id = matchWatch(location.href)?.episodeId;
       if (id) {
         try {
-          (e.source as Window).postMessage({ source: 'crunchy-companion', episodeId: id }, '*');
+          (e.source as Window).postMessage({ source: 'crunchyroll-companion', episodeId: id }, '*');
         } catch {
           /* frame went away */
         }
@@ -66,7 +66,7 @@ export function initFrameEpisodeSync(): void {
   // If we're a child frame (the player iframe), ask the parent for the id now.
   if (window.top !== window) {
     try {
-      window.parent.postMessage({ source: 'crunchy-companion-req' }, '*');
+      window.parent.postMessage({ source: 'crunchyroll-companion-req' }, '*');
     } catch {
       /* cross-origin parent unreachable — referrer fallback still applies */
     }
@@ -79,7 +79,7 @@ export function broadcastEpisodeToFrames(): void {
   if (!id) return;
   for (let i = 0; i < window.frames.length; i++) {
     try {
-      window.frames[i]?.postMessage({ source: 'crunchy-companion', episodeId: id }, '*');
+      window.frames[i]?.postMessage({ source: 'crunchyroll-companion', episodeId: id }, '*');
     } catch {
       /* cross-origin child — postMessage with '*' still delivers; ignore */
     }
@@ -92,7 +92,7 @@ let patched = false;
 function patchHistory(onChange: () => void): void {
   if (patched) return;
   patched = true;
-  const fire = () => window.dispatchEvent(new Event('crunchy-companion:locationchange'));
+  const fire = () => window.dispatchEvent(new Event('crunchyroll-companion:locationchange'));
   for (const method of ['pushState', 'replaceState'] as const) {
     const original = history[method];
     history[method] = function (this: History, ...args: Parameters<typeof original>) {
@@ -101,7 +101,7 @@ function patchHistory(onChange: () => void): void {
       return result;
     };
   }
-  window.addEventListener('crunchy-companion:locationchange', onChange);
+  window.addEventListener('crunchyroll-companion:locationchange', onChange);
 }
 
 /**
@@ -131,7 +131,7 @@ export function onEpisodeChange(handler: Handler): () => void {
 
   return () => {
     window.removeEventListener('popstate', check);
-    window.removeEventListener('crunchy-companion:locationchange', check);
+    window.removeEventListener('crunchyroll-companion:locationchange', check);
     window.clearInterval(pollId);
   };
 }

@@ -37,7 +37,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 // Open the side panel when the toolbar icon is clicked (replaces the popup).
 chrome.sidePanel
   ?.setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((err) => console.warn('[Crunchy Companion] side panel setup failed:', err));
+  .catch((err) => console.warn('[Crunchyroll Companion] side panel setup failed:', err));
 
 // ---- skip-events fetch (avoids content-script CORS) -------------------------
 
@@ -256,7 +256,7 @@ async function resolveMapping(
 
 async function onEpisodeWatched(tabId: number, episodeId: string): Promise<void> {
   const log = (...a: unknown[]) =>
-    console.log('%c[Crunchy Companion]', 'color:#f47521;font-weight:700', ...a);
+    console.log('%c[Crunchyroll Companion]', 'color:#f47521;font-weight:700', ...a);
 
   const settings = await getSettings();
   if (!settings.enabled || !settings.mal.enabled) {
@@ -278,7 +278,7 @@ async function onEpisodeWatched(tabId: number, episodeId: string): Promise<void>
   const access = await validAccessToken();
   if (!access) {
     log('watched: no MAL access token — not connected');
-    toast(tabId, 'Crunchy Companion: connect MyAnimeList in settings to sync progress');
+    toast(tabId, 'Crunchyroll Companion: connect MyAnimeList in settings to sync progress');
     return;
   }
 
@@ -286,7 +286,7 @@ async function onEpisodeWatched(tabId: number, episodeId: string): Promise<void>
     const mapping = await resolveMapping(access, meta);
     if (!mapping) {
       log('watched: no MAL match for', meta.series);
-      toast(tabId, `Crunchy Companion: couldn't find "${meta.series}" on MyAnimeList`);
+      toast(tabId, `Crunchyroll Companion: couldn't find "${meta.series}" on MyAnimeList`);
       return;
     }
     const current = await getAnimeStatus(access, mapping.mediaId).catch(() => null);
@@ -319,7 +319,7 @@ async function onEpisodeWatched(tabId: number, episodeId: string): Promise<void>
     toast(tabId, `MyAnimeList updated: ${mapping.title} • episode ${watched}`);
   } catch (err) {
     log('watched: MAL sync FAILED', err);
-    toast(tabId, `Crunchy Companion: MAL sync failed (${err instanceof Error ? err.message : 'error'})`);
+    toast(tabId, `Crunchyroll Companion: MAL sync failed (${err instanceof Error ? err.message : 'error'})`);
   }
 }
 
@@ -427,7 +427,7 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
           rewatchCount: s.rewatchCount,
         });
       })().catch((err) => {
-        console.warn('[Crunchy Companion] MAL update failed:', err);
+        console.warn('[Crunchyroll Companion] MAL update failed:', err);
         sendResponse({ ok: false, error: err instanceof Error ? err.message : 'error' });
       });
       return true; // async response

@@ -1,8 +1,8 @@
-# Privacy Policy — Crunchy Companion
+# Privacy Policy — Crunchyroll Companion
 
 **Effective date:** June 4, 2026
 
-Crunchy Companion ("the extension") is a client-side browser extension that
+Crunchyroll Companion ("the extension") is a client-side browser extension that
 enhances the Crunchyroll viewing experience. This policy explains what data the
 extension handles and where it goes.
 

@@ -26,7 +26,7 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 delete manifest.key; // store-assigned ID; key only matters for unpacked installs
 await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
 
-const zipName = `crunchy-companion-${version}.zip`;
+const zipName = `crunchyroll-companion-${version}.zip`;
 await rm(r(zipName), { force: true });
 execSync(`cd "${stage}" && zip -r -q "${r(zipName)}" .`);
 await rm(stage, { recursive: true, force: true });

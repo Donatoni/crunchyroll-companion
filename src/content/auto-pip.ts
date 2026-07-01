@@ -21,7 +21,7 @@ export function attachAutoPip(
   // and leave a user-opened one (via the button / native control) alone.
   let openedByUs = false;
 
-  const canPip = () => document.pictureInPictureEnabled && !video.disablePictureInPicture;
+  const canPip = () => document.pictureInPictureEnabled;
 
   // Keep the element's Auto-PiP eligibility in sync with the setting.
   function applyAttr(): void {

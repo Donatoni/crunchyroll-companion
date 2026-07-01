@@ -17,6 +17,7 @@ import { startDomSkip } from './dom-skip';
 import { attachAutoNext } from './autonext';
 import { attachAutoPip } from './auto-pip';
 import { attachPipButton } from './pip-button';
+import { keepPipEnabled } from './pip-enable';
 import { attachProgress } from './progress';
 import { extractMeta } from './meta';
 import { startKeepWatching } from './keep-watching';
@@ -188,6 +189,10 @@ function startSession(ctx: EpisodeContext | null): void {
     teardown.push(
       attachAutoNext(video, () => settings.enabled && settings.autoNext).detach,
     );
+
+    // Crunchyroll blocks PiP via disablePictureInPicture; clear it (and keep it
+    // clear) so both the button and Auto-PiP have a PiP-capable element.
+    teardown.push(keepPipEnabled(video).detach);
 
     teardown.push(
       attachAutoPip(video, () => settings.enabled && settings.autoPip).detach,

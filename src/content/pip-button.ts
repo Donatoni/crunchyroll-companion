@@ -65,6 +65,7 @@ export function attachPipButton(video: HTMLVideoElement): { detach: () => void }
     const svg = el.querySelector('svg');
     if (svg) {
       svg.setAttribute('viewBox', '0 0 24 24');
+      svg.removeAttribute('data-testid'); // was enter-fullscreen-icon
       svg.innerHTML = PIP_PATHS;
     } else {
       el.innerHTML = PIP_SVG;
@@ -76,15 +77,25 @@ export function attachPipButton(video: HTMLVideoElement): { detach: () => void }
 
   let mode: 'none' | 'native' | 'float' = 'none';
 
-  /** Ensure the native button exists; returns true once injected. */
+  /**
+   * Ensure the native button exists; returns true once injected. Each control
+   * lives in its own wrapper div inside the flex control row, so we add a sibling
+   * wrapper (a clone of fullscreen's) right before fullscreen's — putting PiP
+   * between settings and fullscreen without disturbing their layout.
+   */
   function ensureNative(): boolean {
-    const existing = document.getElementById(BTN_ID);
-    if (existing?.isConnected) return true;
+    if (document.getElementById(BTN_ID)?.isConnected) return true;
     const fs = findControl(FULLSCREEN_RE);
-    if (!fs?.parentElement) return false;
+    const fsWrapper = fs?.parentElement;
+    const row = fsWrapper?.parentElement;
+    if (!fs || !fsWrapper || !row) return false;
     const clone = fs.cloneNode(true) as HTMLElement;
     reskin(clone);
-    fs.parentElement.insertBefore(clone, fs); // between settings and fullscreen
+    const wrapper = document.createElement('div');
+    wrapper.className = fsWrapper.className; // mirror the per-control wrapper
+    wrapper.setAttribute('data-cc-pip', '');
+    wrapper.appendChild(clone);
+    row.insertBefore(wrapper, fsWrapper);
     mode = 'native';
     return true;
   }
@@ -153,6 +164,8 @@ export function attachPipButton(video: HTMLVideoElement): { detach: () => void }
       window.removeEventListener('scroll', placeFloat, true);
       window.removeEventListener('resize', placeFloat);
       document.removeEventListener('fullscreenchange', placeFloat);
+      // Native button sits in a wrapper we added; the float button stands alone.
+      document.querySelector('[data-cc-pip]')?.remove();
       document.getElementById(BTN_ID)?.remove();
       floatBtn = null;
     },

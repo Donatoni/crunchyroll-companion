@@ -45,6 +45,10 @@ function dismissStillWatching(): boolean {
 
 /** If the profile picker is showing, click the first profile tile to resume. */
 function dismissProfilePicker(): boolean {
+  // Only auto-pick a profile MID-SESSION (a <video> is on the page) — i.e. the
+  // picker interrupted playback. On a fresh visit's profile screen, silently
+  // choosing the first profile could select the wrong household member.
+  if (!document.querySelector('video')) return false;
   const headingShown = Array.from(
     document.querySelectorAll('h1, h2, h3, [role="heading"]'),
   ).some((h) => PROFILE_HEADING.test(h.textContent ?? ''));

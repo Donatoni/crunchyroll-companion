@@ -42,16 +42,6 @@ export interface MalAnime {
   altTitles: string[];
 }
 
-/** PKCE verifier: 43–128 chars from the unreserved set. */
-export function randomVerifier(): string {
-  // 64-char alphabet so a byte maps to a character with no modulo bias.
-  const chars =
-    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-  const bytes = new Uint8Array(96);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, (b) => chars[b & 63]).join('');
-}
-
 export function authorizeUrl(
   codeChallenge: string,
   redirectUri: string,

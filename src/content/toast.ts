@@ -64,9 +64,10 @@ export function showToast({
   text.textContent = message;
   toast.appendChild(text);
 
-  let timer: number | undefined;
+  // `timer` is assigned at the bottom (after the toast is in the DOM); dismiss
+  // only ever runs later (click / timeout), so the closure read is safe.
   const dismiss = () => {
-    if (timer) window.clearTimeout(timer);
+    window.clearTimeout(timer);
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(8px)';
     window.setTimeout(() => toast.remove(), 200);
@@ -98,5 +99,5 @@ export function showToast({
     toast.style.transform = 'translateY(0)';
   });
 
-  timer = window.setTimeout(dismiss, durationMs);
+  const timer = window.setTimeout(dismiss, durationMs);
 }

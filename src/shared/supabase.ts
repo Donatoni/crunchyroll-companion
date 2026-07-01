@@ -2,13 +2,16 @@
  * Minimal Supabase client (auth + PostgREST) over `fetch` — no SDK, to keep the
  * bundle small and match the rest of the codebase.
  *
- * Auth is Google OAuth via Supabase's implicit flow: we open
- * `/auth/v1/authorize?provider=google` in launchWebAuthFlow (run from a UI page,
- * never the service worker — same constraint as the MAL flow) and read the
- * access/refresh tokens back from the redirect URL fragment. The session is kept
- * in storage.local and used as a Bearer token for REST calls, which RLS scopes to
+ * Auth is Google OAuth via Supabase's PKCE flow: we open
+ * `/auth/v1/authorize?provider=google&code_challenge=…` in launchWebAuthFlow
+ * (run from a UI page, never the service worker — same constraint as the MAL
+ * flow), get an auth code back in the redirect query, and exchange it (with the
+ * verifier) at `/auth/v1/token?grant_type=pkce`. PKCE keeps tokens out of URLs
+ * entirely, unlike the implicit flow this replaces. The session is kept in
+ * storage.local and used as a Bearer token for REST calls, which RLS scopes to
  * the signed-in user.
  */
+import { randomVerifier, s256Challenge } from './pkce';
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from './supabase-config';
 
 const SESSION_KEY = 'sb_session';
@@ -65,9 +68,12 @@ function sessionFromTokens(access: string, refresh: string, expiresIn: number): 
  */
 export async function signInWithGoogle(): Promise<SbSession> {
   const redirectUri = chrome.identity.getRedirectURL();
+  const verifier = randomVerifier();
+  const challenge = await s256Challenge(verifier);
   const url =
     `${SUPABASE_URL}/auth/v1/authorize?provider=google` +
-    `&redirect_to=${encodeURIComponent(redirectUri)}`;
+    `&redirect_to=${encodeURIComponent(redirectUri)}` +
+    `&code_challenge=${challenge}&code_challenge_method=s256`;
 
   const responseUrl = await new Promise<string | undefined>((resolve, reject) => {
     chrome.identity.launchWebAuthFlow({ url, interactive: true }, (u) => {
@@ -77,15 +83,29 @@ export async function signInWithGoogle(): Promise<SbSession> {
     });
   });
 
-  // Implicit flow returns tokens in the URL fragment.
-  const frag = (responseUrl ?? '').split('#')[1] ?? '';
-  const p = new URLSearchParams(frag);
-  const access = p.get('access_token');
-  const refresh = p.get('refresh_token');
-  if (!access || !refresh) {
-    throw new Error(p.get('error_description') || p.get('error') || 'No token returned');
+  // PKCE returns an auth code in the redirect query string.
+  const q = new URLSearchParams((responseUrl ?? '').split('?')[1]?.split('#')[0] ?? '');
+  const code = q.get('code');
+  if (!code) {
+    throw new Error(q.get('error_description') || q.get('error') || 'No auth code returned');
   }
-  const session = sessionFromTokens(access, refresh, Number(p.get('expires_in')) || 3600);
+
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=pkce`, {
+    method: 'POST',
+    headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ auth_code: code, code_verifier: verifier }),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Token exchange HTTP ${res.status} ${detail}`.trim().slice(0, 180));
+  }
+  const j = await res.json();
+  if (!j.access_token || !j.refresh_token) throw new Error('No token returned');
+  const session = sessionFromTokens(
+    j.access_token,
+    j.refresh_token,
+    Number(j.expires_in) || 3600,
+  );
   await setSession(session);
   return session;
 }

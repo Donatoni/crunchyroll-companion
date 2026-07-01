@@ -44,7 +44,8 @@ function fromJsonLd(): JsonLdMeta | null {
 }
 
 /** Pull "Episode N"/"E N"/"S N"/"Season N" numbers out of a free-text string. */
-function parseEpSeason(text: string): { episode: number | null; season: number | null } {
+// Exported for unit tests.
+export function parseEpSeason(text: string): { episode: number | null; season: number | null } {
   const ep = text.match(/\bepisode\s*(\d+)/i) ?? text.match(/\bE\s*(\d+)\b/);
   const se = text.match(/\bseason\s*(\d+)/i) ?? text.match(/\bS\s*(\d+)\b/);
   return {
@@ -99,7 +100,8 @@ const SMALL_WORDS = new Set([
   'for', 'with', 'as', 'by', 'from', 'vs',
 ]);
 
-function titleCase(slug: string): string {
+// Exported for unit tests.
+export function titleCase(slug: string): string {
   return slug
     .split('-')
     .filter(Boolean)

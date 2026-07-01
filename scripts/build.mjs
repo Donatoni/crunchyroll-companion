@@ -39,6 +39,7 @@ const common = {
   logLevel: 'info',
   alias: { '@': r('src') },
   drop: debug ? [] : ['console'],
+  minify: !debug, // keep dev builds readable; prod ships minified
 };
 
 // Bundle each entry to a single self-contained file (no code-splitting, no
@@ -68,6 +69,9 @@ await mkdir(r('dist/icons'), { recursive: true });
 for (const size of [16, 48, 128]) {
   await cp(r(`src/assets/icons/icon-${size}.png`), r(`dist/icons/icon-${size}.png`));
 }
+
+// Fonts: bundled locally (no runtime Google Fonts request — privacy + offline).
+await cp(r('src/assets/fonts'), r('dist/fonts'), { recursive: true });
 
 // Manifest (MV3, Chrome/Edge).
 const manifest = {

@@ -66,8 +66,10 @@ export function attachPipButton(video: HTMLVideoElement): { detach: () => void }
     if (svg) {
       svg.setAttribute('viewBox', '0 0 24 24');
       svg.removeAttribute('data-testid'); // was enter-fullscreen-icon
+      // eslint-disable-next-line no-unsanitized/property -- PIP_PATHS is a module const literal
       svg.innerHTML = PIP_PATHS;
     } else {
+      // eslint-disable-next-line no-unsanitized/property -- PIP_SVG is a module const literal
       el.innerHTML = PIP_SVG;
     }
     // Clones can carry a stale "active/pressed" class; PiP has no toggled state.
@@ -131,6 +133,7 @@ export function attachPipButton(video: HTMLVideoElement): { detach: () => void }
       cursor: 'pointer', opacity: '0.9', boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
       transition: 'background .15s ease',
     } satisfies Partial<CSSStyleDeclaration>);
+    // eslint-disable-next-line no-unsanitized/property -- PIP_SVG is a module const literal
     b.innerHTML = PIP_SVG;
     b.addEventListener('mouseenter', () => (b.style.background = '#f47521'));
     b.addEventListener('mouseleave', () => (b.style.background = 'rgba(20,20,24,0.72)'));

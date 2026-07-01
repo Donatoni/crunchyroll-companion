@@ -22,24 +22,31 @@ function matchesSkip(el: Element): boolean {
   return SKIP_TEXT.test(aria) || SKIP_TEXT.test(title) || SKIP_TEXT.test(text);
 }
 
-/** Collect candidate clickable skip elements from a root (incl. shadow roots). */
-function findSkipButtons(root: ParentNode): HTMLElement[] {
-  const out: HTMLElement[] = [];
+/**
+ * Find the first VISIBLE clickable skip element under a root, checking the
+ * cheapest sources first and only falling back to the expensive full-document
+ * walk (every element, recursing shadow roots) when nothing lighter matched.
+ * Early-exiting here matters: this runs on a 150ms-coalesced MutationObserver
+ * against a player that mutates constantly.
+ */
+function findSkipButton(root: ParentNode): HTMLElement | null {
+  const clickable = (el: HTMLElement): boolean =>
+    typeof el.click === 'function' && isVisible(el);
 
   for (const el of root.querySelectorAll<HTMLElement>(TESTID_SELECTOR)) {
-    out.push(el);
+    if (clickable(el)) return el;
   }
-  for (const el of root.querySelectorAll<HTMLElement>(
-    'button, [role="button"], a',
-  )) {
-    if (matchesSkip(el)) out.push(el);
+  for (const el of root.querySelectorAll<HTMLElement>('button, [role="button"], a')) {
+    if (matchesSkip(el) && clickable(el)) return el;
   }
-  // Recurse into open shadow roots.
+  // Last resort: recurse into open shadow roots.
   for (const el of root.querySelectorAll<HTMLElement>('*')) {
-    if (el.shadowRoot) out.push(...findSkipButtons(el.shadowRoot));
+    if (el.shadowRoot) {
+      const found = findSkipButton(el.shadowRoot);
+      if (found) return found;
+    }
   }
-
-  return out;
+  return null;
 }
 
 function isVisible(el: HTMLElement): boolean {
@@ -60,15 +67,11 @@ export interface DomSkipController {
 export function startDomSkip(enabled: () => boolean): DomSkipController {
   const tryClick = () => {
     if (!enabled()) return;
-    for (const btn of findSkipButtons(document)) {
-      // Some matches (e.g. SVG icons) aren't clickable HTMLElements — skip them
-      // and keep looking rather than throwing.
-      if (typeof btn.click !== 'function' || !isVisible(btn)) continue;
-      log('clicking native skip button:', (btn.textContent ?? '').trim().slice(0, 30));
-      btn.click();
-      void bumpSkip(0);
-      break;
-    }
+    const btn = findSkipButton(document);
+    if (!btn) return;
+    log('clicking native skip button:', (btn.textContent ?? '').trim().slice(0, 30));
+    btn.click();
+    void bumpSkip(0);
   };
 
   // The player mutates attributes (progress bar, time, ARIA) many times per

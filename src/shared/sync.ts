@@ -15,6 +15,7 @@ import { getSettings, saveSettings, type Settings } from './settings';
 import type { HistoryEntry } from './history';
 import type { Stats } from './stats';
 import type { TrackerMapping } from './tracker-store';
+import { mergeHistory, mergeMappings, mergeStats } from './sync-merge';
 import { getBlob, getSession, upsertBlob } from './supabase';
 
 export type SyncKind = 'settings' | 'history' | 'stats' | 'mappings';
@@ -53,55 +54,18 @@ async function gatherLocal(kind: SyncKind): Promise<unknown> {
 }
 
 // While applying merged data locally we suppress the storage.onChanged listener
-// so our own writes don't re-mark the kind dirty and loop.
-let suppressUntil = 0;
-export function isSuppressing(): boolean {
-  return Date.now() < suppressUntil;
+// for THAT kind, so our own write doesn't re-mark it dirty and loop. Per-kind
+// (not a global window) so a real user edit to a different kind landing during
+// the apply still gets tracked.
+const suppressedUntil = new Map<SyncKind, number>();
+function isSuppressed(kind: SyncKind): boolean {
+  return Date.now() < (suppressedUntil.get(kind) ?? 0);
 }
 
 async function applyLocal(kind: SyncKind, data: unknown): Promise<void> {
-  suppressUntil = Date.now() + 1500;
+  suppressedUntil.set(kind, Date.now() + 1500);
   if (kind === 'settings') await saveSettings(data as Settings);
   else await chrome.storage.local.set({ [LOCAL_KEYS[kind]]: data });
-}
-
-// ── merge strategies ──────────────────────────────────────────────────
-function mergeHistory(local: HistoryEntry[], remote: HistoryEntry[]): HistoryEntry[] {
-  const byKey = new Map<string, HistoryEntry>();
-  for (const e of [...remote, ...local]) {
-    if (!e?.series) continue;
-    const k = e.series.trim().toLowerCase();
-    const cur = byKey.get(k);
-    if (!cur || e.updatedAt > cur.updatedAt) byKey.set(k, e);
-  }
-  return [...byKey.values()].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 30);
-}
-
-function mergeStats(local: Stats, remote: Stats): Stats {
-  const days: Record<string, number> = {};
-  for (const src of [remote.days, local.days]) {
-    for (const [k, v] of Object.entries(src ?? {})) days[k] = Math.max(days[k] ?? 0, v);
-  }
-  return {
-    skips: Math.max(local.skips ?? 0, remote.skips ?? 0),
-    secondsSaved: Math.max(local.secondsSaved ?? 0, remote.secondsSaved ?? 0),
-    days,
-  };
-}
-
-function mergeMappings(
-  local: Record<string, TrackerMapping>,
-  remote: Record<string, TrackerMapping>,
-): Record<string, TrackerMapping> {
-  const out: Record<string, TrackerMapping> = { ...remote };
-  for (const [k, lv] of Object.entries(local)) {
-    const rv = out[k];
-    if (!rv) out[k] = lv;
-    else if (lv.pinned && !rv.pinned) out[k] = lv;
-    else if (!lv.pinned && rv.pinned) { /* keep remote (pinned) */ }
-    else out[k] = (lv.v ?? 0) >= (rv.v ?? 0) ? lv : rv; // prefer newer resolver
-  }
-  return out;
 }
 
 /** Merge local + remote for a kind. `localChanged` breaks ties for settings. */
@@ -185,14 +149,14 @@ export function handleStorageChange(
   changes: Record<string, chrome.storage.StorageChange>,
   area: string,
 ): void {
-  if (isSuppressing()) return;
-  const touched: SyncKind[] = [];
-  if (area === 'sync' && 'settings' in changes) touched.push('settings');
+  const candidates: SyncKind[] = [];
+  if (area === 'sync' && 'settings' in changes) candidates.push('settings');
   if (area === 'local') {
-    if ('history' in changes) touched.push('history');
-    if ('stats' in changes) touched.push('stats');
-    if ('mal_mappings' in changes) touched.push('mappings');
+    if ('history' in changes) candidates.push('history');
+    if ('stats' in changes) candidates.push('stats');
+    if ('mal_mappings' in changes) candidates.push('mappings');
   }
+  const touched = candidates.filter((k) => !isSuppressed(k));
   if (!touched.length) return;
 
   void (async () => {

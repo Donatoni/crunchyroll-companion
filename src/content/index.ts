@@ -6,9 +6,11 @@ import {
 } from '@/shared/settings';
 import {
   broadcastEpisodeToFrames,
+  getPostedEpisode,
   initFrameEpisodeSync,
   onEpisodeChange,
   parseEpisode,
+  setBroadcastEpisode,
 } from './navigation';
 import { waitForVideo } from './player';
 import { getSkipSegments } from './skip-api';
@@ -95,12 +97,26 @@ onSettingsChanged((s) => (settings = s));
 // / profile prompts so auto-play sessions aren't interrupted.
 startKeepWatching(() => settings.enabled && settings.keepWatching);
 
-// Episode number for the show currently playing (from the scraped metadata),
-// reset per session. Used by the "skip only after episode 1" gate. `null` while
-// unknown — the gate treats unknown as "allow skipping" so a slow/absent scrape
-// degrades to normal behaviour rather than blocking skips everywhere.
+// Episode number for the show currently playing, reset per session. In the top
+// frame it comes from the metadata scrape; in the player iframe (which owns the
+// <video> and actually runs the skip engine) it arrives via the cross-frame
+// broadcast — without that, the gate would never see a number there and
+// "skip only after episode 1" would silently not work.
 let currentEpisode: number | null = null;
-const skipAllowed = () => !(settings.skipAfterFirstOnly && currentEpisode === 1);
+
+/**
+ * "Skip only after episode 1" gate. While the setting is on and the episode
+ * number is still unknown, we HOLD skipping rather than allow it: episode-1
+ * intros often start at 0:00, and skipping before the number resolves would
+ * defeat the feature. The number lands within a couple of seconds (JSON-LD /
+ * og:title, then the cross-frame broadcast), after which mid-intro skips still
+ * fire — the segment window is checked continuously, not just at its start.
+ */
+const skipAllowed = () => {
+  if (!settings.skipAfterFirstOnly) return true;
+  const ep = currentEpisode ?? getPostedEpisode();
+  return ep != null && ep !== 1;
+};
 
 let teardown: Array<() => void> = [];
 function teardownSession(): void {
@@ -123,7 +139,8 @@ function captureEpisode(ctx: EpisodeContext): void {
     if (parseEpisode()?.episodeId !== ctx.episodeId) return;
     const meta = extractMeta(ctx.episodeId);
     if (meta) {
-      // Feed the "skip only after episode 1" gate as soon as the number is known.
+      // Feed the "skip only after episode 1" gate as soon as the number is
+      // known — locally and in the player iframe (via the broadcast below).
       currentEpisode = meta.episode;
       // On SPA auto-advance the series name is already present while the
       // on-screen episode number still shows the PREVIOUS episode for a beat.
@@ -136,6 +153,8 @@ function captureEpisode(ctx: EpisodeContext): void {
       if (key !== lastKey) {
         lastKey = key;
         log('episode meta', `${meta.series} S${meta.season} E${meta.episode}`);
+        // Push the resolved number to the player iframe (skip-after-ep1 gate).
+        setBroadcastEpisode(ctx.episodeId, meta.episode);
         sendEpisodeMeta(meta);
         void recordHistory({
           episodeId: meta.episodeId,

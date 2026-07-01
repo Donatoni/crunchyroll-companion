@@ -342,6 +342,7 @@ select.input:focus { outline: none; border-color: rgba(244, 117, 33, 0.5); }
   cursor: pointer;
 }
 .btn.ghost { background: transparent; border: 1px solid var(--line-strong); color: var(--text); }
+.btn-g { display: inline-flex; align-items: center; gap: 7px; }
 .muted { color: var(--text-2); font-size: 13px; }
 
 /* mappings */

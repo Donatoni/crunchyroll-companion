@@ -1,7 +1,7 @@
 # Crunchyroll Companion
 
 An all-in-one enhancement extension for [Crunchyroll](https://www.crunchyroll.com)
-(Chrome / Edge, Manifest V3). Version **0.2.2**.
+(Chrome / Edge, Manifest V3). Version **0.2.9**.
 
 It lives in a persistent Chrome **side panel** that adapts to what you're doing:
 a live show companion while you watch, and a home dashboard everywhere else.
@@ -28,7 +28,8 @@ a live show companion while you watch, and a home dashboard everywhere else.
       <img src="img/settings.png" alt="Crunchyroll Companion settings panel" />
       <br />
       <sub><b>Settings</b> — skip method, per-segment auto-skip toggles, playback
-      options, and your MyAnimeList connection — all inline in the panel.</sub>
+      options (auto-next, auto-PiP), cloud sync, and your MyAnimeList connection —
+      all inline in the panel.</sub>
     </td>
     <td width="50%" valign="top">
       <img src="img/recent.png" alt="Crunchyroll Companion recent / continue-watching panel" />
@@ -44,6 +45,9 @@ a live show companion while you watch, and a home dashboard everywhere else.
 - **Auto-play the next episode** when one finishes.
 - **Keep watching**: dismisses Crunchyroll's "Are you still watching?" / profile
   prompts so a binge isn't interrupted.
+- **Picture-in-Picture**: a PiP button built into the player's control bar, plus
+  an optional **auto-PiP** that pops the video out into a floating window when you
+  switch away from the tab.
 - **MyAnimeList sync** (opt-in): keeps your MAL progress on the episode you're
   actually watching, with rich show details (synopsis, genres, seasons,
   characters, reviews) and inline controls to adjust episode / status / score.
@@ -51,6 +55,9 @@ a live show companion while you watch, and a home dashboard everywhere else.
   resume and per-entry delete.
 - A small **"Skipped intro — Undo"** toast so a skip never feels like a glitch,
   plus lifetime **skip stats** (time saved + an activity sparkline) on the home page.
+- **Cloud sync** (opt-in): sign in with Google to back up your settings, watch
+  history, skip stats, and MAL matches to your own Supabase, and keep them in sync
+  across devices. Your MyAnimeList login stays device-local.
 - A persistent **side panel** and a full **options page**, with settings synced
   across your signed-in browsers via `chrome.storage.sync`.
 
@@ -112,6 +119,62 @@ Auth is OAuth2 authorization-code + PKCE; tokens are stored locally and refreshe
 automatically. The client ID is safe to ship (it's not a secret in PKCE flows);
 the signing key (`mal-signing-key.pem`) is gitignored.
 
+## Cloud sync
+
+**Users** open **Cloud sync** (in the side panel settings or the options page) →
+**Sign in with Google**, and their settings, watch history, skip stats, and MAL
+mappings are backed up and merged across devices. The MyAnimeList token is *not*
+synced — it stays on the device.
+
+Sync is **non-destructive** — two devices never clobber each other:
+
+- **settings** — last-write-wins (the locally-edited side wins ties; the cloud
+  applies on a fresh sign-in)
+- **history** — union by series (newest episode per show)
+- **stats** — max of each counter + per-day union
+- **mappings** — union by key, with manual pins winning
+
+It runs on a 15-minute alarm, on startup, on a debounced local change, and on the
+**Sync now** button. Each store is one JSON blob per user in a `sync_blobs` table,
+scoped to the signed-in user by row-level security.
+
+### Developer setup (one-time, to bake in the Supabase client)
+
+1. In your Supabase project's SQL editor, create the table + RLS policies:
+
+   ```sql
+   create table if not exists public.sync_blobs (
+     user_id    uuid        not null references auth.users(id) on delete cascade,
+     kind       text        not null check (kind in ('settings','history','stats','mappings')),
+     data       jsonb       not null default '{}'::jsonb,
+     updated_at timestamptz not null default now(),
+     primary key (user_id, kind)
+   );
+   alter table public.sync_blobs enable row level security;
+   create policy "own rows: select" on public.sync_blobs for select using (auth.uid() = user_id);
+   create policy "own rows: insert" on public.sync_blobs for insert with check (auth.uid() = user_id);
+   create policy "own rows: update" on public.sync_blobs for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+   create policy "own rows: delete" on public.sync_blobs for delete using (auth.uid() = user_id);
+   ```
+
+2. **Authentication → Providers → Google**: enable it and add a Google OAuth
+   client ID + secret (Google Cloud Console redirect URI:
+   `https://<project-ref>.supabase.co/auth/v1/callback`).
+3. **Authentication → URL Configuration → Redirect URLs**: add both extension
+   IDs, since `package.mjs` strips the manifest `key` for the store build so dev
+   and store installs get different `chromiumapp.org` origins:
+   ```
+   https://jcfmdllkakmjkihgphmmimhiehcbbfei.chromiumapp.org/
+   https://jbmbolipkbppndjookmhmpceipfekhmi.chromiumapp.org/
+   ```
+4. Paste the **Project URL** and **anon key** into `src/shared/supabase-config.ts`,
+   and add the project origin to `host_permissions` in `scripts/build.mjs`, then
+   rebuild.
+
+Sign-in uses Google OAuth via `chrome.identity.launchWebAuthFlow` (implicit flow);
+the session is stored locally and refreshed automatically. The anon key is safe to
+ship — it's public by design and guarded by the RLS above.
+
 ## Project layout
 
 ```
@@ -126,18 +189,22 @@ src/
 │  ├─ dom-skip.ts          #   fallback: click the native skip button
 │  ├─ autonext.ts          #   auto-play next episode
 │  ├─ keep-watching.ts     #   dismiss "still watching?" / profile prompts
+│  ├─ auto-pip.ts          #   auto Picture-in-Picture on tab switch
+│  ├─ pip-button.ts        #   PiP button injected into the player control bar
+│  ├─ pip-enable.ts        #   clear Crunchyroll's disablePictureInPicture flag
 │  ├─ progress.ts          #   report the current episode to the tracker
 │  └─ toast.ts             #   "Skipped X — Undo" overlay
 ├─ background/
-│  └─ service-worker.ts    # skip-events fetch (avoids CORS) + MyAnimeList sync hub
+│  └─ service-worker.ts    # skip-events fetch (avoids CORS) + MAL sync + cloud sync
 ├─ options/                # full settings page (fallback)
 ├─ sidepanel/              # the side panel: show view, home dashboard, settings,
 │                          #   MAL card, rails (seasons/characters/reviews/trending)
-├─ shared/                 # settings, messages, MAL client, tracker store,
-│                          #   history, stats, runtime guards, types, parsers
+├─ shared/                 # settings, messages, MAL client, tracker store, history,
+│                          #   stats, Supabase client + cloud-sync engine, parsers
 └─ assets/icons/
 scripts/
-└─ build.mjs               # esbuild bundler + MV3 manifest generation → dist/
+├─ build.mjs               # esbuild bundler + MV3 manifest generation → dist/
+└─ package.mjs             # stage dist/ into a Chrome Web Store upload zip
 ```
 
 ## Build & load

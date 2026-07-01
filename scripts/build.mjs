@@ -77,9 +77,13 @@ const manifest = {
     'Crunchyroll side panel: auto-skip intro/recap/outro/preview, auto-play next, and optional MyAnimeList sync.',
   version,
   minimum_chrome_version: '114',
-  // Pins the extension ID (jcfmdllkakmjkihgphmmimhiehcbbfei) so the OAuth
-  // redirect URL stays constant and can be registered once in the MAL app.
-  key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuEHac8FPd0IUBTpyyrong2jvFYkV9X3Nk02Rv4VWRXoGGlpzMPWlExTntIQpjhNB8qXMpvureGfoBh2ibEYrclcEFJzwBOHcAjBs6N7UNhjw9YDRxwiQqnkbeeEXsNbBsuTzOLzqdy2BJEK35vsXHLpf2keHMFHuI0ztjmjLAatMmsZl6OT4JD0/xaBF7ShwAE42Ljlujw3TB42kkjoegc1p9q+IgZ/Bl3uDpz1FChWAQwSFjZISZv8mGjHdH8Jz27/wz5FtfmEG8eZBIOOEJQw52k1Q/QVbusKRfQaqT/65Wn+odwm6RyWdpzsqxFZWKS1xpPW6uhUduW2F/vVjdwIDAQAB',
+  // Pins the local unpacked build to the PRODUCTION extension ID
+  // (jbmbolipkbppndjookmhmpceipfekhmi) — this is the publisher public key from
+  // the published .crx. Matching prod's ID keeps the OAuth redirect URL
+  // (https://jbmbolipkbppndjookmhmpceipfekhmi.chromiumapp.org/) identical in dev
+  // and prod, so MAL/Google sign-in works the same locally. The store re-signs
+  // with this same key, and package.mjs strips `key` from the uploaded zip.
+  key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvEvkXRomdtDoW+F2h6u2Klun8tT+5IkvkOkxwnPL5fDOedFEEZxwH9WbwbzbgFJrk258lLrRBO/RhSyywDG4WTEYJRheldrn2cxckxPtczm0BdokDas+ePjgI4o37oeC1XHm2edNCz+lQ0js7CThAH2SSCHVcy9fr1UHo6ETdvkjVxuDIAT6sKGeFABcVivjt5RlJUspxD+azhhc0AIlOcMhyz/JL3ogbadhGC4DMG8LerzqnjOgMG0pAQzQikQ0ncoV8FHE1RJmt0Eol95pd5j/OIqa1cVXgs1m8FqAgUic4bGFiORVs5pK8uyMiQn+UfhJzh+XtmYLhTJoJl0g3QIDAQAB',
   icons: { 16: 'icons/icon-16.png', 48: 'icons/icon-48.png', 128: 'icons/icon-128.png' },
   action: {
     default_title: 'Crunchyroll Companion',

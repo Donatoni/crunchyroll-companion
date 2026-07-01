@@ -3,7 +3,9 @@
  *
  * Register ONE app at https://myanimelist.net/apiconfig:
  *   - App Type:          Other   (public client — no client secret)
- *   - App Redirect URL:  https://jcfmdllkakmjkihgphmmimhiehcbbfei.chromiumapp.org/
+ *   - App Redirect URL:  https://jbmbolipkbppndjookmhmpceipfekhmi.chromiumapp.org/
+ *     (the production extension ID; the local build is pinned to the same ID via
+ *     the `key` in scripts/build.mjs, so this one redirect covers dev + prod.)
  *
  * Then paste the generated Client ID below. Every user just clicks
  * "Connect MyAnimeList" and logs into their own account — no per-user setup.

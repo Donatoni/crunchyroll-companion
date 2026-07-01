@@ -144,6 +144,16 @@ export interface SetMalStatusRequest {
   };
 }
 
+/** UI -> worker: run a cloud sync now (after sign-in or "Sync now"). */
+export interface SyncNowRequest {
+  type: 'SYNC_NOW';
+}
+export interface SyncNowResponse {
+  ok: boolean;
+  error?: string;
+  lastSyncedAt: number;
+}
+
 export type RuntimeMessage =
   | FetchSkipEventsRequest
   | EpisodeMetaMessage
@@ -154,7 +164,8 @@ export type RuntimeMessage =
   | MalCharactersRequest
   | MalReviewsRequest
   | MyListRequest
-  | SeasonalRequest;
+  | SeasonalRequest
+  | SyncNowRequest;
 
 /** Promise wrapper around chrome.runtime.sendMessage for skip-events. */
 export function requestSkipEvents(
@@ -243,6 +254,12 @@ export function requestMyList(status: string): Promise<MyListResponse> {
 export function requestSeasonal(): Promise<SeasonalResponse> {
   return chrome.runtime.sendMessage<SeasonalRequest, SeasonalResponse>({
     type: 'GET_SEASONAL',
+  });
+}
+
+export function requestSyncNow(): Promise<SyncNowResponse> {
+  return chrome.runtime.sendMessage<SyncNowRequest, SyncNowResponse>({
+    type: 'SYNC_NOW',
   });
 }
 

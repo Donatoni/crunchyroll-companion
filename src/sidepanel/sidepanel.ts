@@ -13,7 +13,10 @@ import {
   requestMalReviews,
   requestMyList,
   requestSeasonal,
+  requestSyncNow,
 } from '@/shared/messages';
+import { getSession, signInWithGoogle, signOut } from '@/shared/supabase';
+import { getSyncMeta } from '@/shared/sync';
 import type {
   ContentStatusRequest,
   MalStatusResponse,
@@ -951,6 +954,73 @@ const setMappingsToggle = $<HTMLButtonElement>('#set-mappings-toggle');
 const setMappingsCount = $('#set-mappings-count');
 const modeRadios = Array.from(document.querySelectorAll<HTMLInputElement>('input[name="set-mode"]'));
 
+// Cloud sync
+const setSyncStatus = $('#set-sync-status');
+const setSyncSignIn = $<HTMLButtonElement>('#set-sync-signin');
+const setSyncSignOut = $<HTMLButtonElement>('#set-sync-signout');
+const setSyncActions = $('#set-sync-actions');
+const setSyncNowBtn = $<HTMLButtonElement>('#set-sync-now');
+const setSyncWhen = $('#set-sync-when');
+
+function relSyncTime(ts: number): string {
+  if (!ts) return 'never';
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+async function renderSyncSettings(): Promise<void> {
+  const session = await getSession();
+  if (session) {
+    setSyncStatus.textContent = session.email ? `Signed in as ${session.email}` : 'Signed in';
+    setSyncSignIn.hidden = true;
+    setSyncSignOut.hidden = false;
+    setSyncActions.hidden = false;
+    const meta = await getSyncMeta();
+    setSyncWhen.textContent = meta.lastError
+      ? `Error: ${meta.lastError}`
+      : relSyncTime(meta.lastSyncedAt);
+  } else {
+    setSyncStatus.textContent = 'Not signed in';
+    setSyncSignIn.hidden = false;
+    setSyncSignOut.hidden = true;
+    setSyncActions.hidden = true;
+  }
+}
+
+setSyncSignIn.addEventListener('click', async () => {
+  setSyncSignIn.disabled = true;
+  setSyncStatus.textContent = 'Signing in…';
+  try {
+    await signInWithGoogle();
+    await renderSyncSettings();
+    setSyncWhen.textContent = 'Syncing…';
+    await requestSyncNow();
+    await renderSyncSettings();
+  } catch (err) {
+    setSyncStatus.textContent = `Sign-in failed: ${err instanceof Error ? err.message : 'error'}`;
+  } finally {
+    setSyncSignIn.disabled = false;
+  }
+});
+setSyncSignOut.addEventListener('click', async () => {
+  await signOut();
+  await renderSyncSettings();
+});
+setSyncNowBtn.addEventListener('click', async () => {
+  setSyncNowBtn.disabled = true;
+  setSyncWhen.textContent = 'Syncing…';
+  try {
+    const r = await requestSyncNow();
+    setSyncWhen.textContent = r.ok ? relSyncTime(r.lastSyncedAt) : `Error: ${r.error ?? 'failed'}`;
+  } finally {
+    setSyncNowBtn.disabled = false;
+  }
+});
+
 // The Show → MAL matches list is long, so it's collapsed by default.
 let mappingsExpanded = false;
 function applyMappingsExpanded(): void {
@@ -1021,6 +1091,7 @@ async function renderSettings(): Promise<void> {
   for (const k of SKIP_SEGMENTS) setSkip[k].checked = s.skip[k];
   for (const r of modeRadios) r.checked = r.value === s.mode;
   await renderMalSettings();
+  await renderSyncSettings();
 }
 function openSettings(): void {
   settingsView.hidden = false;

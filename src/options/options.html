@@ -51,6 +51,10 @@
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12 M4 12h12 M4 18h7 M15 17l2.5 2.5L22 14" /></svg>
             MyAnimeList
           </button>
+          <button type="button" class="nav-item" data-tab="sync">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 13.5-5.8L20 8 M20 12a8 8 0 0 1-13.5 5.8L4 16 M20 4v4h-4 M4 20v-4h4" /></svg>
+            Cloud sync
+          </button>
           <button type="button" class="nav-item" data-tab="about">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z M12 11v5 M12 7.5h.01" /></svg>
             About
@@ -170,6 +174,29 @@
             <h3 class="subhead">Series → MyAnimeList mappings</h3>
             <p class="hint">If a show synced to the wrong entry, correct its MAL anime ID here.</p>
             <div id="mappings"></div>
+          </div>
+        </div>
+
+        <!-- Cloud sync -->
+        <div class="panel" data-panel="sync">
+          <div class="panel-head">
+            <h2>Cloud sync</h2>
+            <p>Back up your settings, watch history, skip stats, and MAL matches, and keep them in sync across devices.</p>
+          </div>
+          <div class="mal-connect" id="sync-connect">
+            <div class="mal-badge-lg">☁</div>
+            <div class="mal-connect-main">
+              <div class="mal-connect-title" id="sync-status">Not signed in</div>
+              <div class="mal-connect-sub">Sign in with Google to enable sync. Your MyAnimeList login stays on this device.</div>
+            </div>
+            <button type="button" class="btn" id="sync-signin">Sign in with Google</button>
+            <button type="button" class="btn ghost" id="sync-signout" hidden>Sign out</button>
+          </div>
+          <div class="fields" id="sync-actions" hidden>
+            <div class="field last">
+              <div><div class="field-title">Last synced</div><div class="field-desc" id="sync-when">—</div></div>
+              <span class="field-control"><button type="button" class="btn" id="sync-now">Sync now</button></span>
+            </div>
           </div>
         </div>
 

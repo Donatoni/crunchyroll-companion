@@ -19,6 +19,9 @@ import {
   getUserName,
   randomVerifier,
 } from '@/shared/mal';
+import { getSession, signInWithGoogle, signOut } from '@/shared/supabase';
+import { getSyncMeta } from '@/shared/sync';
+import { requestSyncNow } from '@/shared/messages';
 
 const $ = <T extends HTMLElement>(id: string) => document.querySelector<T>(`#${id}`)!;
 
@@ -225,5 +228,72 @@ disconnectBtn.addEventListener('click', async () => {
   await renderMal();
 });
 
+// ── Cloud sync ──────────────────────────────────────────────────────
+const syncStatusEl = $<HTMLDivElement>('sync-status');
+const syncSignInBtn = $<HTMLButtonElement>('sync-signin');
+const syncSignOutBtn = $<HTMLButtonElement>('sync-signout');
+const syncActions = $<HTMLDivElement>('sync-actions');
+const syncNowBtn = $<HTMLButtonElement>('sync-now');
+const syncWhenEl = $<HTMLDivElement>('sync-when');
+
+function relSyncTime(ts: number): string {
+  if (!ts) return 'never';
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+async function renderSync(): Promise<void> {
+  const session = await getSession();
+  if (session) {
+    syncStatusEl.textContent = session.email ? `Signed in as ${session.email}` : 'Signed in';
+    syncSignInBtn.hidden = true;
+    syncSignOutBtn.hidden = false;
+    syncActions.hidden = false;
+    const meta = await getSyncMeta();
+    syncWhenEl.textContent = meta.lastError ? `Error: ${meta.lastError}` : relSyncTime(meta.lastSyncedAt);
+  } else {
+    syncStatusEl.textContent = 'Not signed in';
+    syncSignInBtn.hidden = false;
+    syncSignOutBtn.hidden = true;
+    syncActions.hidden = true;
+  }
+}
+
+syncSignInBtn.addEventListener('click', async () => {
+  syncSignInBtn.disabled = true;
+  syncStatusEl.textContent = 'Signing in…';
+  try {
+    await signInWithGoogle();
+    await renderSync();
+    syncWhenEl.textContent = 'Syncing…';
+    await requestSyncNow();
+    await renderSync();
+    flashSaved();
+  } catch (err) {
+    syncStatusEl.textContent = `Sign-in failed: ${err instanceof Error ? err.message : 'error'}`;
+  } finally {
+    syncSignInBtn.disabled = false;
+  }
+});
+syncSignOutBtn.addEventListener('click', async () => {
+  await signOut();
+  await renderSync();
+});
+syncNowBtn.addEventListener('click', async () => {
+  syncNowBtn.disabled = true;
+  syncWhenEl.textContent = 'Syncing…';
+  try {
+    const r = await requestSyncNow();
+    syncWhenEl.textContent = r.ok ? relSyncTime(r.lastSyncedAt) : `Error: ${r.error ?? 'failed'}`;
+  } finally {
+    syncNowBtn.disabled = false;
+  }
+});
+
 void render();
 void renderMal();
+void renderSync();

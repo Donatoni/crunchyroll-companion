@@ -96,13 +96,14 @@ const manifest = {
       all_frames: true,
     },
   ],
-  permissions: ['storage', 'identity', 'sidePanel'],
+  permissions: ['storage', 'identity', 'sidePanel', 'alarms'],
   host_permissions: [
     '*://*.crunchyroll.com/*',
     '*://static.crunchyroll.com/*',
     'https://myanimelist.net/*',
     'https://api.myanimelist.net/*',
     'https://api.jikan.moe/*',
+    'https://yoerrzzznpfcbsrrbocs.supabase.co/*',
   ],
 };
 await writeFile(r('dist/manifest.json'), JSON.stringify(manifest, null, 2));

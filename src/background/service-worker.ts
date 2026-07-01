@@ -27,17 +27,37 @@ import {
   searchAnime,
   setMyListStatus,
 } from '@/shared/mal';
+import { getSession } from '@/shared/supabase';
+import { handleStorageChange, syncNow } from '@/shared/sync';
+
+const CLOUD_SYNC_ALARM = 'cloud-sync';
 
 /** Seed defaults on install so the panel/options never render an empty state. */
 chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.sync.get('settings');
   if (!current.settings) await saveSettings(DEFAULT_SETTINGS);
+  // Periodic cloud-sync heartbeat (also catches changes made while a device was
+  // offline). No-ops when signed out.
+  chrome.alarms.create(CLOUD_SYNC_ALARM, { periodInMinutes: 15 });
 });
 
 // Open the side panel when the toolbar icon is clicked (replaces the popup).
 chrome.sidePanel
   ?.setPanelBehavior({ openPanelOnActionClick: true })
   .catch((err) => console.warn('[Crunchyroll Companion] side panel setup failed:', err));
+
+// ---- cloud sync -------------------------------------------------------------
+
+// Debounced push when synced data changes locally; periodic pull via the alarm.
+chrome.storage.onChanged.addListener(handleStorageChange);
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === CLOUD_SYNC_ALARM) void syncNow();
+});
+// Pull once on startup so a device that was edited elsewhere catches up promptly.
+chrome.runtime.onStartup.addListener(() => void syncOnStartup());
+async function syncOnStartup(): Promise<void> {
+  if (await getSession()) void syncNow();
+}
 
 // ---- skip-events fetch (avoids content-script CORS) -------------------------
 
@@ -402,6 +422,10 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
       getSeasonal()
         .then((items) => sendResponse({ ok: true, items }))
         .catch(() => sendResponse({ ok: false, items: [] }));
+      return true; // async response
+    }
+    case 'SYNC_NOW': {
+      syncNow().then(sendResponse);
       return true; // async response
     }
     case 'SET_MAL_STATUS': {

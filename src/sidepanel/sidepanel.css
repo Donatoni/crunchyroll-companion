@@ -274,14 +274,18 @@ body {
 .set-btn.ghost { border-color: transparent; background: transparent; color: var(--text-3); }
 .set-btn.ghost:hover { background: rgba(255,255,255,0.05); color: var(--text); }
 
-/* Sync status footer: one quiet mono line under the account row, with a plain
-   accent text-link instead of a button. */
-.sync-line { display: flex; align-items: center; gap: 7px; padding: 0 0 4px 42px; font: 500 11px var(--mono); color: var(--text-3); }
-.sync-line .sync-ic { flex: 0 0 auto; }
-.sync-line .sync-when { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.link-accent { flex: 0 0 auto; background: none; border: none; cursor: pointer; color: #8aa6ff; font: 600 11.5px var(--sans); padding: 2px 4px; border-radius: 6px; }
-.link-accent:hover { text-decoration: underline; }
-.link-accent:disabled { opacity: 0.6; cursor: default; text-decoration: none; }
+/* Sync status footer: one quiet centered mono line under the account row.
+   The circular-arrow icon IS the manual-sync button — it nudges round on
+   hover and spins while a sync is running (the handler disables it). */
+.sync-line { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 0 4px; font: 500 11px var(--mono); color: var(--text-3); }
+.sync-line .sync-when { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sync-btn { flex: 0 0 auto; display: grid; place-items: center; width: 22px; height: 22px; background: none; border: none; border-radius: 6px; color: inherit; cursor: pointer; }
+.sync-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+.sync-btn .sync-ic { transition: transform 0.2s ease; }
+.sync-btn:hover .sync-ic { transform: rotate(45deg); }
+.sync-btn:disabled { cursor: default; background: none; }
+.sync-btn:disabled .sync-ic { animation: sync-spin 0.9s linear infinite; }
+@keyframes sync-spin { to { transform: rotate(360deg); } }
 
 /* Rate block: centered mini-banner — stars, one question, an accent link line.
    The whole block is the link (no button, no box, no chevron). */

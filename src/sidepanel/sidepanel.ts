@@ -76,7 +76,11 @@ async function renderStats(): Promise<void> {
 
 // ── settings close → stale views re-fetch ───────────────────────────
 initSettingsView(() => {
-  resetWatchingCache(); // MAL connection may have changed — re-fetch the show
+  // MAL connection may have changed — re-fetch the show SILENTLY (repaint in
+  // place). A cache reset here would re-enter the new-show loading path:
+  // skeleton lines pop in above the meta strip and the air pill re-mounts,
+  // visibly jumping the content the moment you leave settings.
+  refreshMalStatus();
   invalidateHome(); // re-pull My List / Seasonal / Recs
   idleRendered = false; // re-render idle sections on return
   void refresh();

@@ -699,12 +699,6 @@ export function updateWatching(meta: TrackerMeta): void {
   renderHero();
 }
 
-/** Forget the cached show so the next updateWatching() re-fetches from MAL. */
-export function resetWatchingCache(): void {
-  lastMetaKey = '';
-  currentMeta = null;
-}
-
 /**
  * Silently re-fetch the current show's MAL card (same show, fresher numbers) —
  * used when progress-sync writes to MAL mid-episode. Unlike updateWatching's

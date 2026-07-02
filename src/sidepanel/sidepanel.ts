@@ -8,7 +8,7 @@ import type { ContentStatusRequest, TabStatusResponse } from '@/shared/messages'
 import type { TrackerMeta } from '@/shared/types';
 import { formatSaved, getStats } from '@/shared/stats';
 import { $ } from './helpers';
-import { refreshMalStatus, resetWatchingCache, updateWatching } from './watching';
+import { refreshMalStatus, updateWatching } from './watching';
 import {
   invalidateHome,
   loadHomeContent,
@@ -26,6 +26,7 @@ const idleView = $('#idleView');
 
 let currentMeta: TrackerMeta | null = null;
 let idleRendered = false; // idle dashboard built? (guards poll-tick rebuilds)
+let inIdle = false; // last rendered view (drives the return-to-show refresh)
 
 // ── status refresh (active tab) ─────────────────────────────────────
 async function getTabStatus(): Promise<void> {
@@ -51,11 +52,18 @@ async function refresh(): Promise<void> {
     idleView.hidden = true;
     watchingView.hidden = false;
     idleRendered = false; // leaving idle — next idle entry re-renders fresh
+    const cameFromIdle = inIdle;
+    inIdle = false;
     updateWatching(currentMeta);
+    // Returning to the SAME show after time away: the watching cache is kept
+    // (wiping it re-enters the skeleton loading path and visibly jumps the
+    // layout), so refresh the MAL numbers silently in place instead. A
+    // different show takes updateWatching's full loading path anyway.
+    if (cameFromIdle) refreshMalStatus();
   } else {
     watchingView.hidden = true;
     idleView.hidden = false;
-    resetWatchingCache();
+    inIdle = true;
     // Render the idle sections only on ENTERING idle, not on every poll tick —
     // rebuilding them resets the "Jump back in" rail's scroll. Live updates
     // come from the storage.onChanged listener below.

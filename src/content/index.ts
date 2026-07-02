@@ -122,13 +122,61 @@ const skipAllowed = () => {
   return ep != null && ep !== 1;
 };
 
-// Sleep timer mirror ("N more auto-advances"), kept live so the panel's edits
-// apply instantly. `null` = no timer. Consulted by the auto-next gate below.
+// Sleep timer mirror ("N more episodes"), kept live so the panel's edits
+// apply instantly. `null` = no timer.
 let sleepRemaining: number | null = null;
 getSleepTimer()
   .then((t) => (sleepRemaining = t?.remaining ?? null))
   .catch(() => {});
 onSleepTimerChanged((t) => (sleepRemaining = t?.remaining ?? null));
+
+/**
+ * When the previous episode in this frame finished (epoch ms; 0 = it didn't).
+ * The sleep timer is enforced at the START of the next episode, not by
+ * refusing to advance at the end: Crunchyroll's own "Autoplay Next" player
+ * setting advances episodes itself, so there is no click of ours to withhold.
+ * A new episode beginning shortly after the previous one finished counts as an
+ * auto-advance regardless of who advanced (us, Crunchyroll, or a quick manual
+ * "next") — decrement then, and at zero pause the new episode.
+ */
+let lastEndedAt = 0;
+const ADVANCE_WINDOW_MS = 60_000;
+
+function applySleepGate(video: HTMLVideoElement, teardownList: Array<() => void>): void {
+  const advanced = lastEndedAt > 0 && Date.now() - lastEndedAt < ADVANCE_WINDOW_MS;
+  lastEndedAt = 0; // consume — a later manual navigation must not re-trigger
+
+  if (advanced && sleepRemaining != null) {
+    if (sleepRemaining > 0) {
+      void decrementSleepTimer();
+    } else {
+      // Timer exhausted: stop THIS episode as it starts. Hold the pause for a
+      // few seconds (the player may try to resume itself), then let go so the
+      // user's own play press wins.
+      const stop = () => video.pause();
+      stop();
+      video.addEventListener('playing', stop);
+      window.setTimeout(() => video.removeEventListener('playing', stop), 5000);
+      teardownList.push(() => video.removeEventListener('playing', stop));
+      log('sleep timer done — pausing playback');
+      showToast({ message: 'Sleep timer done — playback paused 🌙', durationMs: 8000 });
+      void clearSleepTimer();
+    }
+  }
+
+  // Track how this episode ends, for the NEXT session's advance check.
+  const markEnded = () => {
+    lastEndedAt = Date.now();
+  };
+  video.addEventListener('ended', markEnded);
+  teardownList.push(() => {
+    video.removeEventListener('ended', markEnded);
+    // Crunchyroll can cut to the next episode before `ended` fires; leaving
+    // an episode ≥85% through still counts as finishing it.
+    const d = video.duration;
+    if (Number.isFinite(d) && d > 0 && video.currentTime / d >= 0.85) markEnded();
+  });
+}
 
 let teardown: Array<() => void> = [];
 function teardownSession(): void {
@@ -231,18 +279,11 @@ function startSession(ctx: EpisodeContext | null): void {
       ).stop,
     );
 
+    // Sleep timer: count/enforce the auto-advance that (maybe) got us here.
+    applySleepGate(video, teardown);
+
     teardown.push(
-      attachAutoNext(video, () => settings.enabled && settings.autoNext, {
-        canAdvance: () => sleepRemaining == null || sleepRemaining > 0,
-        onAdvance: () => {
-          if (sleepRemaining != null) void decrementSleepTimer();
-        },
-        onBlocked: () => {
-          // One announcement, then clear — the next manual play starts fresh.
-          showToast({ message: 'Sleep timer done — auto-play paused 🌙', durationMs: 6000 });
-          void clearSleepTimer();
-        },
-      }).detach,
+      attachAutoNext(video, () => settings.enabled && settings.autoNext).detach,
     );
 
     // Crunchyroll blocks PiP via disablePictureInPicture; clear it (and keep it

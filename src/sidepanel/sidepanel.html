@@ -83,19 +83,6 @@
           <div class="mal-err" id="malErr" hidden></div>
         </section>
 
-        <!-- Sleep timer -->
-        <section class="section" id="sleepSection">
-          <div class="sec-head"><span class="sec-label">Sleep timer</span><span class="sleep-status" id="sleepStatus" hidden></span></div>
-          <div class="sleep-chips" id="sleepChips" role="radiogroup" aria-label="Stop auto-play after">
-            <button type="button" class="sleep-chip" data-eps="">Off</button>
-            <button type="button" class="sleep-chip" data-eps="1">1 ep</button>
-            <button type="button" class="sleep-chip" data-eps="2">2 eps</button>
-            <button type="button" class="sleep-chip" data-eps="3">3 eps</button>
-            <button type="button" class="sleep-chip" data-eps="5">5 eps</button>
-          </div>
-          <div class="sleep-hint">Auto-play stops after that many more episodes.</div>
-        </section>
-
         <!-- Seasons -->
         <section class="section" id="seasonsSection" hidden>
           <div class="sec-head"><span class="sec-label">Seasons &amp; related</span></div>
@@ -106,12 +93,6 @@
         <section class="section" id="charactersSection" hidden>
           <div class="sec-head"><span class="sec-label">Characters</span></div>
           <div class="rail" id="charactersRail"></div>
-        </section>
-
-        <!-- Theme songs -->
-        <section class="section" id="themesSection" hidden>
-          <div class="sec-head"><span class="sec-label">Theme songs</span></div>
-          <div id="themesList"></div>
         </section>
 
         <!-- Featured reviews -->
@@ -167,9 +148,25 @@
       </div>
     </div>
 
+    <!-- Sleep timer dock (toggled by the footer moon) -->
+    <div class="sleep-dock" id="sleepDock" hidden>
+      <div class="sd-head"><span class="sec-label">Sleep timer</span><span class="sleep-status" id="sleepStatus" hidden></span></div>
+      <div class="sleep-chips" id="sleepChips" role="radiogroup" aria-label="Stop auto-play after">
+        <button type="button" class="sleep-chip" data-eps="">Off</button>
+        <button type="button" class="sleep-chip" data-eps="1">1 ep</button>
+        <button type="button" class="sleep-chip" data-eps="2">2 eps</button>
+        <button type="button" class="sleep-chip" data-eps="3">3 eps</button>
+        <button type="button" class="sleep-chip" data-eps="5">5 eps</button>
+      </div>
+      <div class="sleep-hint">Auto-play stops after that many more episodes.</div>
+    </div>
+
     <footer class="footer">
       <span class="stat-txt" id="stats">No skips yet</span>
       <div class="links">
+        <button class="icon-btn" id="open-sleep" aria-label="Sleep timer" aria-expanded="false" title="Sleep timer">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <button class="link-btn" id="open-recent">Recent</button>
         <button class="link-btn" id="open-settings2">Settings</button>
       </div>

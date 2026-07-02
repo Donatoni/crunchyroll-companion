@@ -19,6 +19,7 @@ import {
 } from './home';
 import { initSettingsView } from './settings-view';
 import './recent';
+import './sleep-dock';
 
 const watchingView = $('#watchingView');
 const idleView = $('#idleView');

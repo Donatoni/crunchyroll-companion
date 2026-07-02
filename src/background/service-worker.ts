@@ -24,7 +24,6 @@ import {
   getRecommendations,
   getReviews,
   getSeasonal,
-  getThemes,
   getUserList,
   refresh,
   searchAnime,
@@ -403,12 +402,6 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
       getReviews(message.animeId)
         .then(({ reviews, allUrl }) => sendResponse({ ok: true, reviews, allUrl }))
         .catch(() => sendResponse({ ok: false, reviews: [] }));
-      return true; // async response
-    }
-    case 'GET_MAL_THEMES': {
-      getThemes(message.animeId)
-        .then(({ openings, endings }) => sendResponse({ ok: true, openings, endings }))
-        .catch(() => sendResponse({ ok: false, openings: [], endings: [] }));
       return true; // async response
     }
     case 'GET_MY_LIST': {

@@ -303,23 +303,6 @@ export async function getCharacters(animeId: number): Promise<MalCharacter[]> {
 }
 
 /**
- * Opening/ending theme songs via Jikan (MAL's own v2 API has no themes
- * endpoint). Returns the raw display strings; parsing lives in themes.ts.
- * Best-effort — callers should tolerate this throwing / returning empties.
- */
-export async function getThemes(
-  animeId: number,
-): Promise<{ openings: string[]; endings: string[] }> {
-  const res = await fetch(`https://api.jikan.moe/v4/anime/${animeId}/themes`);
-  if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
-  const j = await res.json();
-  return {
-    openings: (j.data?.openings ?? []).filter((s: unknown) => typeof s === 'string'),
-    endings: (j.data?.endings ?? []).filter((s: unknown) => typeof s === 'string'),
-  };
-}
-
-/**
  * Featured reviews via Jikan (MAL's own API has no reviews endpoint), plus the
  * URL of the show's full reviews tab. That URL needs MAL's title slug, which we
  * get from Jikan's anime endpoint (`data.url`); falls back to the bare anime

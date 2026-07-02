@@ -116,17 +116,6 @@ export interface MalReviewsResponse {
   allUrl?: string;
 }
 
-/** Side panel -> worker: OP/ED theme songs (via Jikan) for an anime. */
-export interface MalThemesRequest {
-  type: 'GET_MAL_THEMES';
-  animeId: number;
-}
-export interface MalThemesResponse {
-  ok: boolean;
-  openings: string[];
-  endings: string[];
-}
-
 /** Side panel -> worker: the signed-in user's list for a status (home dashboard). */
 export interface MyListRequest {
   type: 'GET_MY_LIST';
@@ -190,7 +179,6 @@ export type RuntimeMessage =
   | SetMalStatusRequest
   | MalCharactersRequest
   | MalReviewsRequest
-  | MalThemesRequest
   | MyListRequest
   | SeasonalRequest
   | RecommendationsRequest
@@ -269,13 +257,6 @@ export function requestMalCharacters(animeId: number): Promise<MalCharactersResp
 export function requestMalReviews(animeId: number): Promise<MalReviewsResponse> {
   return chrome.runtime.sendMessage<MalReviewsRequest, MalReviewsResponse>({
     type: 'GET_MAL_REVIEWS',
-    animeId,
-  });
-}
-
-export function requestMalThemes(animeId: number): Promise<MalThemesResponse> {
-  return chrome.runtime.sendMessage<MalThemesRequest, MalThemesResponse>({
-    type: 'GET_MAL_THEMES',
     animeId,
   });
 }

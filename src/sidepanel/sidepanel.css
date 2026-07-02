@@ -212,10 +212,11 @@ body {
 .pcard { flex: 0 0 auto; width: 104px; cursor: pointer; }
 .pcard .ph { position: relative; width: 104px; height: 148px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--surface-3) center/cover no-repeat; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 .pcard:hover .ph { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.pcard:hover .pt { color: var(--text); }
 .pcard .sbadge { position: absolute; top: 6px; left: 6px; display: inline-flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.72); color: #ffc24b; font: 600 10px var(--mono); padding: 2px 6px; border-radius: 6px; }
 .pcard .pbar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0,0,0,0.55); }
 .pcard .pbar > i { display: block; height: 100%; background: var(--accent); }
-.pcard .pt { font-size: 11px; font-weight: 600; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.pcard .pt { font-size: 11px; font-weight: 600; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); transition: color 0.15s ease; }
 .pcard .ps { font: 500 10px var(--mono); color: var(--text-3); margin-top: 1px; }
 
 /* ── footer ── */
@@ -371,5 +372,6 @@ body {
 .cw { flex: 0 0 auto; width: 130px; cursor: pointer; }
 .cw .ph { width: 130px; height: 74px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-3) center/cover no-repeat; transition: border-color 0.15s ease, box-shadow 0.15s ease; }
 .cw:hover .ph { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.cw .t { font-size: 11.5px; font-weight: 600; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cw .t { font-size: 11.5px; font-weight: 600; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-2); transition: color 0.15s ease; }
+.cw:hover .t { color: var(--text); }
 .cw .s { font: 500 10px var(--mono); color: var(--text-3); margin-top: 1px; }

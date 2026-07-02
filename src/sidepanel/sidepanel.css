@@ -134,6 +134,7 @@ body {
 .mal-nudge:hover { border-color: rgba(46,81,162,0.5); }
 .mal-badge { width: 38px; height: 38px; flex: 0 0 auto; border-radius: 10px; display: grid; place-items: center; background: var(--mal); color: #fff; font-weight: 700; font-size: 12px; }
 .mal-badge.g-badge { background: #fff; }
+.mal-badge.star-badge { background: var(--accent-dim); color: #ffc24b; font-size: 17px; }
 .mal-nudge .nudge-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .mal-nudge .nudge-title { font-size: 13px; font-weight: 600; }
 .mal-nudge .nudge-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
@@ -269,6 +270,8 @@ body {
 .set-mal-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .set-mal-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
 .set-btn { flex: 0 0 auto; padding: 7px 12px; border-radius: 9px; cursor: pointer; white-space: nowrap; border: 1px solid rgba(46,81,162,0.55); background: rgba(46,81,162,0.18); color: #8aa6ff; font: 600 12px var(--sans); }
+/* .set-btn is also used on <a> (the Rate link) — keep it looking like the button. */
+a.set-btn { display: inline-flex; align-items: center; text-decoration: none; }
 .set-btn:hover { background: rgba(46,81,162,0.28); }
 .set-btn:disabled { opacity: 0.6; cursor: default; }
 .set-btn.ghost { border-color: var(--line-strong); background: transparent; color: var(--text-2); }

@@ -442,8 +442,16 @@ export async function getSeasonal(): Promise<SeasonalItem[]> {
   const res = await fetch('https://api.jikan.moe/v4/seasons/now?sfw=true&limit=25');
   if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
   const j = await res.json();
+  // Jikan's seasons endpoint documents that it may return DUPLICATE entries
+  // (MAL lists a show under multiple categories) — dedupe by id or the rail
+  // shows the same poster twice.
+  const seen = new Set<number>();
   return (j.data ?? [])
-    .filter((d: { images?: { jpg?: { image_url?: string } }; type?: string }) => d.images?.jpg?.image_url && d.type === 'TV')
+    .filter((d: { mal_id: number; images?: { jpg?: { image_url?: string } }; type?: string }) => {
+      if (!d.images?.jpg?.image_url || d.type !== 'TV' || seen.has(d.mal_id)) return false;
+      seen.add(d.mal_id);
+      return true;
+    })
     .sort((a: { members?: number }, b: { members?: number }) => (b.members ?? 0) - (a.members ?? 0))
     .slice(0, 16)
     .map(

@@ -277,7 +277,9 @@ body {
 /* Sync status footer: one quiet centered mono line under the account row.
    The circular-arrow icon IS the manual-sync button — it nudges round on
    hover and spins while a sync is running (the handler disables it). */
-.sync-line { display: flex; align-items: center; justify-content: center; gap: 5px; padding: 0 0 4px; font: 500 11px var(--mono); color: var(--text-3); }
+/* left-padded so the icon glyph sits on the same column as the row text above
+   (badge 30px + 12px gap = 42px; the 22px button centers its 12px icon +5px) */
+.sync-line { display: flex; align-items: center; gap: 5px; padding: 0 0 4px 37px; font: 500 11px var(--mono); color: var(--text-3); }
 .sync-line .sync-when { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sync-btn { flex: 0 0 auto; display: grid; place-items: center; width: 22px; height: 22px; background: none; border: none; border-radius: 6px; color: inherit; cursor: pointer; }
 .sync-btn:hover { background: rgba(255,255,255,0.06); color: var(--text); }

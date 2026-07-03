@@ -71,12 +71,26 @@ for (const size of [16, 48, 128]) {
 // Fonts: bundled locally (no runtime Google Fonts request — privacy + offline).
 await cp(r('src/assets/fonts'), r('dist/fonts'), { recursive: true });
 
+// Locales: `default_locale` + _locales/en marks the package (and therefore the
+// Web Store listing) as English instead of "for all languages".
+const messages = {
+  extName: { message: 'Crunchyroll Companion' },
+  extDesc: {
+    message:
+      'Crunchyroll side panel: auto-skip intro/recap/outro/preview, auto-play next, and optional MyAnimeList sync.',
+  },
+};
+await mkdir(r('dist/_locales/en'), { recursive: true });
+await writeFile(r('dist/_locales/en/messages.json'), JSON.stringify(messages, null, 2));
+
 // Manifest (MV3, Chrome/Edge).
 const manifest = {
   manifest_version: 3,
-  name: 'Crunchyroll Companion',
-  description:
-    'Crunchyroll side panel: auto-skip intro/recap/outro/preview, auto-play next, and optional MyAnimeList sync.',
+  // Localized via _locales/en (see above) so the store lists the item as
+  // English rather than "for all languages".
+  name: '__MSG_extName__',
+  description: '__MSG_extDesc__',
+  default_locale: 'en',
   version,
   minimum_chrome_version: '114',
   // Pins the local unpacked build to the PRODUCTION extension ID

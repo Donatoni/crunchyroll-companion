@@ -37,7 +37,7 @@ import { matchScore, normalizeTitle } from '@/shared/mal-match';
 
 const CLOUD_SYNC_ALARM = 'cloud-sync';
 
-/** Seed defaults on install so the panel/options never render an empty state. */
+/** Seed defaults on install so the panel never renders an empty state. */
 chrome.runtime.onInstalled.addListener(async () => {
   const current = await chrome.storage.sync.get('settings');
   if (!current.settings) await saveSettings(DEFAULT_SETTINGS);

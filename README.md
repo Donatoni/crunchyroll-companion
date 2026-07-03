@@ -67,9 +67,9 @@ a live show companion while you watch, and a home dashboard everywhere else.
 - **Cloud sync** (opt-in): sign in with Google to back up your settings, watch
   history, skip stats, and MAL matches to your own Supabase, and keep them in sync
   across devices. Your MyAnimeList login stays device-local.
-- A persistent **side panel** and a full **options page**, with settings synced
-  across your signed-in browsers via `chrome.storage.sync`. Fonts are bundled —
-  the panel makes no runtime requests to Google.
+- A persistent **side panel** with everything inline — settings included — and
+  synced across your signed-in browsers via `chrome.storage.sync`. Fonts are
+  bundled — the panel makes no runtime requests to Google.
 
 > This is a personal, client-side enhancement that only automates actions you can
 > already perform yourself (clicking *Skip* / *Next*). It does not bypass
@@ -84,7 +84,7 @@ that powers its own **Skip Intro** button:
 https://static.crunchyroll.com/skip-events/production/{episodeId}.json
 ```
 
-The extension supports two methods (Options → *Skip method*):
+The extension supports two methods (Settings → *Skip method*):
 
 - **Smart seek** (default): the background worker fetches that JSON and the
   content script seeks the `<video>` straight past each enabled segment. If an
@@ -98,7 +98,7 @@ without a page reload.
 
 ## MyAnimeList sync
 
-**Users** open Options → **MyAnimeList** → **Connect MyAnimeList**, log into their
+**Users** open the panel settings → **MyAnimeList** → **Connect**, log into their
 own MAL account, and toggle **Sync watched episodes** on. Nothing else to set up.
 
 - **Tracks the episode you're on.** A short way into each episode (~10s of real
@@ -135,7 +135,7 @@ the signing key (`mal-signing-key.pem`) is gitignored.
 
 ## Cloud sync
 
-**Users** open **Cloud sync** (in the side panel settings or the options page) →
+**Users** open **Cloud sync** (in the side panel settings) →
 **Sign in with Google**, and their settings, watch history, skip stats, and MAL
 mappings are backed up and merged across devices. The MyAnimeList token is *not*
 synced — it stays on the device.
@@ -210,7 +210,6 @@ src/
 │  └─ toast.ts             #   "Skipped X — Undo" overlay
 ├─ background/
 │  └─ service-worker.ts    # skip-events fetch (avoids CORS) + MAL sync + cloud sync
-├─ options/                # full settings page (fallback)
 ├─ sidepanel/              # the side panel, one module per view:
 │  ├─ sidepanel.ts         #   shell: view switching, tab tracking, live updates
 │  ├─ watching.ts          #   show view: hero, MAL card, reconcile, air date, rails
@@ -264,7 +263,7 @@ Then in Chrome / Edge:
 > Crunchyroll tab** (content scripts aren't re-injected into already-open tabs).
 
 Click the toolbar icon to open the **side panel** (needs Chrome 114+); its
-**Settings** view covers everything, with the standalone options page as a fallback.
+**Settings** view covers everything.
 
 ## Verifying it works
 

@@ -89,7 +89,7 @@ chrome.runtime.onMessage.addListener(
  * it still drives the DOM fallback once a <video> appears.
  */
 
-// Live settings mirror, kept fresh so popup/options toggles apply instantly.
+// Live settings mirror, kept fresh so side-panel toggles apply instantly.
 // Starts from defaults, then loads the real values asynchronously.
 let settings: Settings = DEFAULT_SETTINGS;
 getSettings()

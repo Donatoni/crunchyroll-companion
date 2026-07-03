@@ -82,7 +82,7 @@ export async function patchSettings(patch: Partial<Settings>): Promise<Settings>
 
 /**
  * Subscribe to live settings changes. Returns an unsubscribe function.
- * Used by the content script so popup/options toggles apply without a reload.
+ * Used by the content script so side-panel toggles apply without a reload.
  */
 export function onSettingsChanged(cb: (settings: Settings) => void): () => void {
   const listener = (

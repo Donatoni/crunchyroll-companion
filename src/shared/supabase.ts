@@ -63,7 +63,7 @@ function sessionFromTokens(access: string, refresh: string, expiresIn: number): 
 
 // ── sign in / out ─────────────────────────────────────────────────────
 /**
- * Google sign-in. MUST be called from a UI page (side panel / options); the MV3
+ * Google sign-in. MUST be called from a UI page (the side panel); the MV3
  * worker has no window to host the auth popup. Persists and returns the session.
  */
 export async function signInWithGoogle(): Promise<SbSession> {

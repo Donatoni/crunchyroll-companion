@@ -48,7 +48,6 @@ await Promise.all([
   build({ ...common, entryPoints: [r('src/content/index.ts')], outfile: r('dist/content.js') }),
   build({ ...common, entryPoints: [r('src/background/service-worker.ts')], outfile: r('dist/service-worker.js') }),
   build({ ...common, entryPoints: [r('src/sidepanel/sidepanel.ts')], outfile: r('dist/sidepanel.js') }),
-  build({ ...common, entryPoints: [r('src/options/options.ts')], outfile: r('dist/options.js') }),
 ]);
 
 // HTML + CSS: copy and rewrite the dev script/style references to built files.
@@ -62,7 +61,6 @@ async function emitHtml(name) {
   await cp(r(`src/${name}/${name}.css`), r(`dist/${name}.css`));
 }
 await emitHtml('sidepanel');
-await emitHtml('options');
 
 // Icons.
 await mkdir(r('dist/icons'), { recursive: true });
@@ -94,7 +92,6 @@ const manifest = {
     default_icon: { 16: 'icons/icon-16.png', 48: 'icons/icon-48.png', 128: 'icons/icon-128.png' },
   },
   side_panel: { default_path: 'sidepanel.html' },
-  options_page: 'options.html',
   background: { service_worker: 'service-worker.js' },
   content_scripts: [
     {

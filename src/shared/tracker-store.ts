@@ -19,13 +19,13 @@ export const RESOLVER_VERSION = 3;
 export interface TrackerMapping {
   /** MAL anime id this CR series+season maps to. */
   mediaId: number;
-  /** Display title (for the options UI). */
+  /** Display title (for the settings UI). */
   title: string;
   /** Total episodes in the MAL entry, if known (for COMPLETED detection). */
   episodes: number | null;
   /** Resolver version that produced this mapping (absent = legacy, re-resolve). */
   v?: number;
-  /** Set when the user fixed the id by hand in Options — never auto-re-resolve. */
+  /** Set when the user fixed the id by hand in Settings — never auto-re-resolve. */
   pinned?: boolean;
 }
 

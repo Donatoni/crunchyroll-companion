@@ -1,6 +1,5 @@
 /**
- * Shared MyAnimeList connect flow, used by both the side panel and the options
- * page (previously two copies that could drift). MUST be called from a UI page —
+ * MyAnimeList connect flow. MUST be called from a UI page (the side panel) —
  * launchWebAuthFlow needs a window to host the auth popup; the MV3 service
  * worker has none.
  */

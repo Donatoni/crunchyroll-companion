@@ -286,13 +286,52 @@ export async function getAnimeDetails(
   };
 }
 
+// ── Jikan throttle ──────────────────────────────────────────────────
+// Jikan rate-limits (~3 req/s, 60/min). Firing characters + reviews (+ its slug
+// lookup) + recommendations concurrently gets us 429'd, silently dropping those
+// sections. Serialize EVERY Jikan call through one queue with a minimum gap, and
+// retry 429 / 5xx (incl. Jikan's frequent upstream 504s) with backoff so a
+// single flaky request doesn't kill a section.
+const JIKAN_GAP_MS = 450; // ~2.2 req/s, comfortably under the limit
+let jikanChain: Promise<unknown> = Promise.resolve();
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+async function jikanFetchWithRetry(url: string): Promise<Response> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url);
+      if (res.status !== 429 && res.status < 500) return res;
+      const retryAfter = Number(res.headers.get('retry-after')) * 1000;
+      await sleep(retryAfter > 0 ? retryAfter : 800 * (attempt + 1));
+    } catch (err) {
+      lastErr = err;
+      await sleep(800 * (attempt + 1));
+    }
+  }
+  if (lastErr) throw lastErr;
+  return fetch(url); // out of retries — one last try so the caller sees !ok
+}
+
+/** Rate-limited Jikan fetch: spaced by JIKAN_GAP_MS regardless of caller concurrency. */
+function jikanFetch(url: string): Promise<Response> {
+  const gate = jikanChain;
+  const result = (async () => {
+    await gate.catch(() => {});
+    return jikanFetchWithRetry(url);
+  })();
+  // The next call waits for this one to finish, then the gap.
+  jikanChain = result.then(() => sleep(JIKAN_GAP_MS), () => sleep(JIKAN_GAP_MS));
+  return result;
+}
+
 /**
  * Characters for an anime via the unofficial Jikan API (MAL's own v2 API has no
  * character endpoint). Jikan keys by MAL id, so the same id works. Best-effort —
  * callers should tolerate this throwing / returning [].
  */
 export async function getCharacters(animeId: number): Promise<MalCharacter[]> {
-  const res = await fetch(`https://api.jikan.moe/v4/anime/${animeId}/characters`);
+  const res = await jikanFetch(`https://api.jikan.moe/v4/anime/${animeId}/characters`);
   if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
   const j = await res.json();
   return (j.data ?? [])
@@ -319,7 +358,7 @@ export async function getCharacters(animeId: number): Promise<MalCharacter[]> {
 export async function getReviews(
   animeId: number,
 ): Promise<{ reviews: MalReview[]; allUrl: string }> {
-  const res = await fetch(
+  const res = await jikanFetch(
     `https://api.jikan.moe/v4/anime/${animeId}/reviews?preliminary=false&spoilers=false`,
   );
   if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
@@ -345,7 +384,7 @@ export async function getReviews(
 
   let allUrl = `https://myanimelist.net/anime/${animeId}`;
   try {
-    const a = await fetch(`https://api.jikan.moe/v4/anime/${animeId}`);
+    const a = await jikanFetch(`https://api.jikan.moe/v4/anime/${animeId}`);
     if (a.ok) {
       const aj = await a.json();
       if (aj.data?.url) allUrl = `${aj.data.url.replace(/\/$/, '')}/reviews`;
@@ -411,7 +450,7 @@ export interface SeasonalItem {
  * users made the recommendation. No auth. Best-effort — callers tolerate [].
  */
 export async function getRecommendations(animeId: number): Promise<SeasonalItem[]> {
-  const res = await fetch(`https://api.jikan.moe/v4/anime/${animeId}/recommendations`);
+  const res = await jikanFetch(`https://api.jikan.moe/v4/anime/${animeId}/recommendations`);
   if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
   const j = await res.json();
   return (j.data ?? [])
@@ -439,7 +478,7 @@ export async function getRecommendations(animeId: number): Promise<SeasonalItem[
 
 /** Popular currently-airing shows this season, via Jikan (no auth). */
 export async function getSeasonal(): Promise<SeasonalItem[]> {
-  const res = await fetch('https://api.jikan.moe/v4/seasons/now?sfw=true&limit=25');
+  const res = await jikanFetch('https://api.jikan.moe/v4/seasons/now?sfw=true&limit=25');
   if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
   const j = await res.json();
   // Jikan's seasons endpoint documents that it may return DUPLICATE entries

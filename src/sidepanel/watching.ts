@@ -245,15 +245,24 @@ async function loadCharacters(animeId: number): Promise<void> {
   charactersSection.hidden = true;
   let chars = charCache.get(animeId);
   if (!chars) {
+    let ok = false;
     try {
       const r = await requestMalCharacters(animeId);
-      chars = r.ok ? r.characters : [];
-      charCache.set(animeId, chars);
+      if (r.ok) {
+        chars = r.characters;
+        charCache.set(animeId, chars); // cache ONLY a successful response
+        ok = true;
+      }
     } catch {
-      chars = [];
+      /* transient (rate limit / Jikan 5xx / network) — don't cache, retry later */
     }
+    // A failed load must not stick: clear the guard so the next render (MAL
+    // update, settings close, idle return) retries instead of the empty result
+    // being pinned for the whole panel session.
+    if (!ok && animeId === lastCharId) lastCharId = null;
+    chars ??= [];
   }
-  if (animeId !== lastCharId) return; // changed while loading
+  if (lastCharId !== null && animeId !== lastCharId) return; // changed while loading
   charactersRail.replaceChildren();
   for (const c of chars) {
     const el = document.createElement('div');
@@ -286,15 +295,21 @@ async function loadReviews(animeId: number): Promise<void> {
   reviewsSection.hidden = true;
   let data = reviewCache.get(animeId);
   if (!data) {
+    let ok = false;
     try {
       const r = await requestMalReviews(animeId);
-      data = { reviews: r.ok ? r.reviews : [], allUrl: r.allUrl ?? '' };
-      reviewCache.set(animeId, data);
+      if (r.ok) {
+        data = { reviews: r.reviews, allUrl: r.allUrl ?? '' };
+        reviewCache.set(animeId, data); // cache ONLY a successful response
+        ok = true;
+      }
     } catch {
-      data = { reviews: [], allUrl: '' };
+      /* transient (Jikan reviews endpoint 504s often) — don't cache, retry later */
     }
+    if (!ok && animeId === lastReviewId) lastReviewId = null; // allow a retry
+    data ??= { reviews: [], allUrl: '' };
   }
-  if (animeId !== lastReviewId) return;
+  if (lastReviewId !== null && animeId !== lastReviewId) return;
   reviewsList.replaceChildren();
   for (const rv of data.reviews) {
     const card = document.createElement('button');

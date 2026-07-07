@@ -35,6 +35,28 @@ describe('mergeHistory', () => {
     const local = Array.from({ length: 40 }, (_, i) => entry(`show-${i}`, i));
     expect(mergeHistory(local, [])).toHaveLength(30);
   });
+
+  it('a bookmark set on either device survives a newer unflagged entry', () => {
+    // Laptop bookmarked at E4; desktop later watched E7 without the flag.
+    const laptop = [{ ...entry('Frieren', 100, 4), bookmarked: true }];
+    const desktop = [entry('Frieren', 200, 7)];
+    const [a] = mergeHistory(laptop, desktop);
+    expect(a.episode).toBe(7); // newer entry wins the data…
+    expect(a.bookmarked).toBe(true); // …but the bookmark survives
+    const [b] = mergeHistory(desktop, laptop); // and in the other direction
+    expect(b.bookmarked).toBe(true);
+  });
+
+  it('never evicts bookmarked entries at the cap', () => {
+    // The bookmarked show is the OLDEST of 40 — naive slice(0,30) drops it.
+    const local = [
+      { ...entry('keeper', 0, 3), bookmarked: true },
+      ...Array.from({ length: 40 }, (_, i) => entry(`show-${i}`, i + 1)),
+    ];
+    const merged = mergeHistory(local, []);
+    expect(merged.filter((e) => !e.bookmarked)).toHaveLength(30);
+    expect(merged.some((e) => e.series === 'keeper')).toBe(true);
+  });
 });
 
 describe('mergeStats', () => {

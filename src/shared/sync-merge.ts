@@ -17,9 +17,24 @@ export function mergeHistory(local: HistoryEntry[], remote: HistoryEntry[]): His
     if (!e?.series) continue;
     const k = e.series.trim().toLowerCase();
     const cur = byKey.get(k);
-    if (!cur || e.updatedAt > cur.updatedAt) byKey.set(k, e);
+    const newer = !cur || e.updatedAt > cur.updatedAt ? e : cur;
+    // The bookmark survives if EITHER side has it — otherwise a newer unflagged
+    // entry from one device silently wipes a bookmark set on another.
+    const bookmarked = !!(cur?.bookmarked || e.bookmarked) || undefined;
+    byKey.set(k, bookmarked ? { ...newer, bookmarked: true } : newer);
   }
-  return [...byKey.values()].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 30);
+  const sorted = [...byKey.values()].sort((a, b) => b.updatedAt - a.updatedAt);
+  // Cap like local history: 30 non-bookmarked entries; bookmarks never evicted.
+  const out: HistoryEntry[] = [];
+  let plain = 0;
+  for (const e of sorted) {
+    if (e.bookmarked) out.push(e);
+    else if (plain < 30) {
+      out.push(e);
+      plain++;
+    }
+  }
+  return out;
 }
 
 export function mergeStats(local: Stats, remote: Stats): Stats {

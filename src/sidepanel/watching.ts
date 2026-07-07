@@ -14,6 +14,7 @@ import {
 import type { MalCharacter, MalRelated, MalReview } from '@/shared/mal';
 import { formatAirDate, nextBroadcastDate } from '@/shared/broadcast';
 import { confettiBurst } from '@/shared/confetti';
+import { isBookmarked, setBookmark } from '@/shared/history';
 import { $, esc, makeActivatable, makeRailScrollable, scrollPanelTop, setBg } from './helpers';
 import { openSettings } from './settings-view';
 
@@ -685,6 +686,41 @@ document.addEventListener('keydown', (e) => {
 });
 malNudge.addEventListener('click', openSettings);
 
+// ── show bookmark (hero, top-right) ─────────────────────────────────
+const bmBtn = $<HTMLButtonElement>('#bmBtn');
+
+function paintBookmark(on: boolean): void {
+  bmBtn.classList.toggle('on', on);
+  bmBtn.setAttribute('aria-pressed', String(on));
+  bmBtn.title = on
+    ? 'Bookmarked — you mean to finish this. Click to remove.'
+    : 'Bookmark — come back and finish this';
+}
+
+/** Reflect the stored bookmark state for the show on screen. */
+async function syncBookmark(): Promise<void> {
+  if (!currentMeta) return;
+  const series = currentMeta.series; // the show this lookup is for
+  const on = await isBookmarked(series).catch(() => false);
+  if (currentMeta?.series === series) paintBookmark(on);
+}
+
+bmBtn.addEventListener('click', async () => {
+  if (!currentMeta) return;
+  const next = !bmBtn.classList.contains('on');
+  paintBookmark(next); // optimistic — the tap should feel instant
+  // The history entry is created by the content script within seconds of the
+  // page loading; if it somehow isn't there yet, revert rather than lie.
+  const ok = await setBookmark(currentMeta.series, next).catch(() => false);
+  if (!ok) paintBookmark(!next);
+});
+
+// Repaint when history changes elsewhere (bookmarks overlay, auto-clear on
+// completion, cloud sync applying a merge).
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.history) void syncBookmark();
+});
+
 // ── public API (called by the shell) ────────────────────────────────
 /** Render the watching view for the tab's current episode metadata. */
 export function updateWatching(meta: TrackerMeta): void {
@@ -701,6 +737,7 @@ export function updateWatching(meta: TrackerMeta): void {
     malResp = undefined; // new show: drop stale MAL data so the poster waits for the new cover
     detailsSkel.hidden = false; // shimmer until MAL details resolve
     void loadMal();
+    void syncBookmark();
   }
   renderHero();
 }

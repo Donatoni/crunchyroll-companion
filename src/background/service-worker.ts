@@ -32,7 +32,7 @@ import {
 } from '@/shared/mal';
 import { getSession } from '@/shared/supabase';
 import { handleStorageChange, syncNow } from '@/shared/sync';
-import { getHistory } from '@/shared/history';
+import { getHistory, setBookmark } from '@/shared/history';
 import { matchScore, normalizeTitle } from '@/shared/mal-match';
 
 const CLOUD_SYNC_ALARM = 'cloud-sync';
@@ -292,6 +292,8 @@ async function onEpisodeWatched(tabId: number, episodeId: string): Promise<void>
     if (justCompleted) {
       log('watched: series completed', mapping.title);
       toast(tabId, `Finished ${mapping.title} — marked Completed on MyAnimeList ✓`, true);
+      // A bookmark means "come back and finish this" — finishing fulfills it.
+      void setBookmark(meta.series, false);
     } else if (finishedRewatch) {
       toast(tabId, `Rewatch complete: ${mapping.title} ✓`, true);
     } else {

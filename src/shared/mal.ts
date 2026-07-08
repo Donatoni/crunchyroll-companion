@@ -201,17 +201,6 @@ export interface MalCharacter {
   url: string | null;
 }
 
-export interface MalReview {
-  user: string;
-  avatar: string | null;
-  score: number | null;
-  text: string;
-  /** "Recommended" / "Mixed Feelings" / "Not Recommended", if any. */
-  tag: string;
-  /** Link to the full review on MAL. */
-  url: string;
-}
-
 export interface MalDetails extends MalStatus {
   title: string;
   synopsis: string;
@@ -286,113 +275,46 @@ export async function getAnimeDetails(
   };
 }
 
-// ── Jikan throttle ──────────────────────────────────────────────────
-// Jikan rate-limits (~3 req/s, 60/min). Firing characters + reviews (+ its slug
-// lookup) + recommendations concurrently gets us 429'd, silently dropping those
-// sections. Serialize EVERY Jikan call through one queue with a minimum gap, and
-// retry 429 / 5xx (incl. Jikan's frequent upstream 504s) with backoff so a
-// single flaky request doesn't kill a section.
-const JIKAN_GAP_MS = 450; // ~2.2 req/s, comfortably under the limit
-let jikanChain: Promise<unknown> = Promise.resolve();
-const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+// ── AniList (characters) ────────────────────────────────────────────
+// MAL's own v2 API has no character endpoint. AniList is a FIRST-PARTY GraphQL
+// API — it queries its own database, NOT a scraper like Jikan (which is shutting
+// down 2026-10-01) — and it can look an anime up BY MAL id, so our CR→MAL
+// resolution is reused unchanged. Free, no auth for public data.
+const ANILIST = 'https://graphql.anilist.co';
 
-async function jikanFetchWithRetry(url: string): Promise<Response> {
-  let lastErr: unknown;
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const res = await fetch(url);
-      if (res.status !== 429 && res.status < 500) return res;
-      const retryAfter = Number(res.headers.get('retry-after')) * 1000;
-      await sleep(retryAfter > 0 ? retryAfter : 800 * (attempt + 1));
-    } catch (err) {
-      lastErr = err;
-      await sleep(800 * (attempt + 1));
+const CHARACTERS_QUERY = `query ($idMal: Int) {
+  Media(idMal: $idMal, type: ANIME) {
+    characters(sort: [ROLE, RELEVANCE], perPage: 14) {
+      edges { role node { name { full } image { large } siteUrl } }
     }
   }
-  if (lastErr) throw lastErr;
-  return fetch(url); // out of retries — one last try so the caller sees !ok
-}
-
-/** Rate-limited Jikan fetch: spaced by JIKAN_GAP_MS regardless of caller concurrency. */
-function jikanFetch(url: string): Promise<Response> {
-  const gate = jikanChain;
-  const result = (async () => {
-    await gate.catch(() => {});
-    return jikanFetchWithRetry(url);
-  })();
-  // The next call waits for this one to finish, then the gap.
-  jikanChain = result.then(() => sleep(JIKAN_GAP_MS), () => sleep(JIKAN_GAP_MS));
-  return result;
-}
+}`;
 
 /**
- * Characters for an anime via the unofficial Jikan API (MAL's own v2 API has no
- * character endpoint). Jikan keys by MAL id, so the same id works. Best-effort —
+ * Characters for an anime via AniList, looked up by MAL id. Best-effort —
  * callers should tolerate this throwing / returning [].
  */
 export async function getCharacters(animeId: number): Promise<MalCharacter[]> {
-  const res = await jikanFetch(`https://api.jikan.moe/v4/anime/${animeId}/characters`);
-  if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
+  const res = await fetch(ANILIST, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify({ query: CHARACTERS_QUERY, variables: { idMal: animeId } }),
+  });
+  if (!res.ok) throw new Error(`AniList HTTP ${res.status}`);
   const j = await res.json();
-  return (j.data ?? [])
-    .slice(0, 14)
-    .map(
-      (d: {
-        character?: { name?: string; url?: string; images?: { jpg?: { image_url?: string } } };
-        role?: string;
-      }) => ({
-        name: d.character?.name ?? '',
-        image: d.character?.images?.jpg?.image_url ?? null,
-        role: d.role ?? '',
-        url: d.character?.url ?? null,
-      }),
-    );
-}
-
-/**
- * Featured reviews via Jikan (MAL's own API has no reviews endpoint), plus the
- * URL of the show's full reviews tab. That URL needs MAL's title slug, which we
- * get from Jikan's anime endpoint (`data.url`); falls back to the bare anime
- * page if that lookup fails.
- */
-export async function getReviews(
-  animeId: number,
-): Promise<{ reviews: MalReview[]; allUrl: string }> {
-  const res = await jikanFetch(
-    `https://api.jikan.moe/v4/anime/${animeId}/reviews?preliminary=false&spoilers=false`,
-  );
-  if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
-  const j = await res.json();
-  const reviews: MalReview[] = (j.data ?? [])
-    .slice(0, 4)
-    .map(
-      (d: {
-        user?: { username?: string; images?: { jpg?: { image_url?: string } } };
-        score?: number;
-        review?: string;
-        tags?: string[];
-        url?: string;
-      }) => ({
-        user: d.user?.username ?? '',
-        avatar: d.user?.images?.jpg?.image_url ?? null,
-        score: d.score ?? null,
-        text: (d.review ?? '').trim(),
-        tag: (d.tags ?? [])[0] ?? '',
-        url: d.url ?? '',
-      }),
-    );
-
-  let allUrl = `https://myanimelist.net/anime/${animeId}`;
-  try {
-    const a = await jikanFetch(`https://api.jikan.moe/v4/anime/${animeId}`);
-    if (a.ok) {
-      const aj = await a.json();
-      if (aj.data?.url) allUrl = `${aj.data.url.replace(/\/$/, '')}/reviews`;
-    }
-  } catch {
-    /* keep the bare-anime fallback */
-  }
-  return { reviews, allUrl };
+  const edges: Array<{
+    role?: string;
+    node?: { name?: { full?: string }; image?: { large?: string }; siteUrl?: string };
+  }> = j.data?.Media?.characters?.edges ?? [];
+  return edges
+    .map((e) => ({
+      name: e.node?.name?.full ?? '',
+      image: e.node?.image?.large ?? null,
+      // AniList roles are MAIN / SUPPORTING / BACKGROUND (the UI upper-cases anyway).
+      role: e.role ?? '',
+      url: e.node?.siteUrl ?? null,
+    }))
+    .filter((c) => c.name);
 }
 
 export interface MalListItem {
@@ -444,71 +366,70 @@ export interface SeasonalItem {
   type: string | null;
 }
 
+interface MalAnimeCard {
+  node: {
+    id: number;
+    title: string;
+    main_picture?: { medium?: string; large?: string };
+    mean?: number;
+    media_type?: string;
+    alternative_titles?: { en?: string };
+  };
+}
+
+/** Map a MAL anime node (from recommendations / ranking) to a poster-rail item. */
+function toSeasonalItem(node: MalAnimeCard['node'], score: number | null, type: string | null): SeasonalItem {
+  return {
+    id: node.id,
+    // Prefer the official English title; fall back to the romaji default.
+    title: node.alternative_titles?.en || node.title,
+    picture: node.main_picture?.large ?? node.main_picture?.medium ?? null,
+    score,
+    type,
+  };
+}
+
 /**
- * "Because you watched X" picks via Jikan's per-anime recommendations (MAL's own
- * v2 API has no recommendations endpoint). Keyed by MAL id, ordered by how many
- * users made the recommendation. No auth. Best-effort — callers tolerate [].
+ * "Because you watched X" picks via the OFFICIAL MAL API (anime details carry a
+ * `recommendations` field — community "if you liked this…" links, ordered by
+ * vote count). Works with the client-id header, so no sign-in needed.
  */
-export async function getRecommendations(animeId: number): Promise<SeasonalItem[]> {
-  const res = await jikanFetch(`https://api.jikan.moe/v4/anime/${animeId}/recommendations`);
-  if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
+export async function getRecommendations(
+  access: string | null,
+  animeId: number,
+): Promise<SeasonalItem[]> {
+  const res = await fetch(
+    `${API}/anime/${animeId}?fields=recommendations`,
+    { headers: authHeaders(access), cache: 'no-store' },
+  );
+  if (!res.ok) throw new Error(`MAL HTTP ${res.status}`);
   const j = await res.json();
-  return (j.data ?? [])
+  return (j.recommendations ?? [])
     .slice(0, 16)
-    .map(
-      (d: {
-        entry?: {
-          mal_id: number;
-          title: string;
-          images?: { jpg?: { image_url?: string; large_image_url?: string } };
-        };
-        votes?: number;
-      }) => ({
-        id: d.entry?.mal_id ?? 0,
-        title: d.entry?.title ?? '',
-        picture:
-          d.entry?.images?.jpg?.large_image_url ?? d.entry?.images?.jpg?.image_url ?? null,
-        // Recommendations carry no score; reuse the vote count as a soft signal.
-        score: null,
-        type: d.votes ? `${d.votes} rec${d.votes === 1 ? '' : 's'}` : null,
-      }),
-    )
+    .map((d: { node: MalAnimeCard['node']; num_recommendations?: number }) => {
+      const n = d.num_recommendations ?? 0;
+      return toSeasonalItem(d.node, null, n ? `${n} rec${n === 1 ? '' : 's'}` : null);
+    })
     .filter((r: SeasonalItem) => r.id && r.title && r.picture);
 }
 
-/** Popular currently-airing shows this season, via Jikan (no auth). */
-export async function getSeasonal(): Promise<SeasonalItem[]> {
-  const res = await jikanFetch('https://api.jikan.moe/v4/seasons/now?sfw=true&limit=25');
-  if (!res.ok) throw new Error(`Jikan HTTP ${res.status}`);
+/**
+ * Popular currently-airing shows via the OFFICIAL MAL API ranking endpoint
+ * (`ranking_type=airing`). Works with the client-id header.
+ */
+export async function getSeasonal(access: string | null): Promise<SeasonalItem[]> {
+  const res = await fetch(
+    `${API}/anime/ranking?ranking_type=airing&limit=20&fields=mean,media_type,alternative_titles`,
+    { headers: authHeaders(access), cache: 'no-store' },
+  );
+  if (!res.ok) throw new Error(`MAL HTTP ${res.status}`);
   const j = await res.json();
-  // Jikan's seasons endpoint documents that it may return DUPLICATE entries
-  // (MAL lists a show under multiple categories) — dedupe by id or the rail
-  // shows the same poster twice.
-  const seen = new Set<number>();
   return (j.data ?? [])
-    .filter((d: { mal_id: number; images?: { jpg?: { image_url?: string } }; type?: string }) => {
-      if (!d.images?.jpg?.image_url || d.type !== 'TV' || seen.has(d.mal_id)) return false;
-      seen.add(d.mal_id);
-      return true;
-    })
-    .sort((a: { members?: number }, b: { members?: number }) => (b.members ?? 0) - (a.members ?? 0))
+    .map((d: MalAnimeCard) => d.node)
+    .filter((n: MalAnimeCard['node']) => n.media_type === 'tv' && n.main_picture)
     .slice(0, 16)
-    .map(
-      (d: {
-        mal_id: number;
-        title: string;
-        title_english?: string | null;
-        images?: { jpg?: { image_url?: string; large_image_url?: string } };
-        score?: number;
-        type?: string;
-      }) => ({
-        id: d.mal_id,
-        // Prefer the official English title; fall back to the romaji default.
-        title: d.title_english || d.title,
-        picture: d.images?.jpg?.large_image_url ?? d.images?.jpg?.image_url ?? null,
-        score: d.score ?? null,
-        type: d.type ?? null,
-      }),
+    .map((n: MalAnimeCard['node']) =>
+      toSeasonalItem(n, n.mean ?? null, n.media_type ? n.media_type.toUpperCase() : null),
     );
 }
 

@@ -1,5 +1,5 @@
 import type { SkipSegment, TrackerMeta } from './types';
-import type { MalCharacter, MalListItem, MalRelated, MalReview, SeasonalItem } from './mal';
+import type { MalCharacter, MalListItem, MalRelated, SeasonalItem } from './mal';
 import { isExtensionContextValid } from './runtime';
 
 /**
@@ -103,7 +103,7 @@ export interface MalStatusResponse {
   error?: string;
 }
 
-/** Side panel -> worker: character list (via Jikan) for an anime. */
+/** Side panel -> worker: character list (via AniList) for an anime. */
 export interface MalCharactersRequest {
   type: 'GET_MAL_CHARACTERS';
   animeId: number;
@@ -113,17 +113,6 @@ export interface MalCharactersResponse {
   characters: MalCharacter[];
 }
 
-/** Side panel -> worker: featured reviews (via Jikan) for an anime. */
-export interface MalReviewsRequest {
-  type: 'GET_MAL_REVIEWS';
-  animeId: number;
-}
-export interface MalReviewsResponse {
-  ok: boolean;
-  reviews: MalReview[];
-  /** Link to the show's full reviews tab on MAL. */
-  allUrl?: string;
-}
 
 /** Side panel -> worker: the signed-in user's list for a status (home dashboard). */
 export interface MyListRequest {
@@ -187,7 +176,6 @@ export type RuntimeMessage =
   | MalStatusRequest
   | SetMalStatusRequest
   | MalCharactersRequest
-  | MalReviewsRequest
   | MyListRequest
   | SeasonalRequest
   | RecommendationsRequest
@@ -259,13 +247,6 @@ export function setMalStatus(
 export function requestMalCharacters(animeId: number): Promise<MalCharactersResponse> {
   return chrome.runtime.sendMessage<MalCharactersRequest, MalCharactersResponse>({
     type: 'GET_MAL_CHARACTERS',
-    animeId,
-  });
-}
-
-export function requestMalReviews(animeId: number): Promise<MalReviewsResponse> {
-  return chrome.runtime.sendMessage<MalReviewsRequest, MalReviewsResponse>({
-    type: 'GET_MAL_REVIEWS',
     animeId,
   });
 }

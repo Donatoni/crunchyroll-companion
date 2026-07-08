@@ -8,10 +8,9 @@ import {
   requestMalStatus,
   setMalStatus,
   requestMalCharacters,
-  requestMalReviews,
   type MalStatusResponse,
 } from '@/shared/messages';
-import type { MalCharacter, MalRelated, MalReview } from '@/shared/mal';
+import type { MalCharacter, MalRelated } from '@/shared/mal';
 import { formatAirDate, nextBroadcastDate } from '@/shared/broadcast';
 import { confettiBurst } from '@/shared/confetti';
 import { $, esc, makeActivatable, makeRailScrollable, scrollPanelTop, setBg } from './helpers';
@@ -39,8 +38,6 @@ let malTotal: number | null = null;
 let lastMetaKey = '';
 let lastCharId: number | null = null;
 const charCache = new Map<number, MalCharacter[]>();
-let lastReviewId: number | null = null;
-const reviewCache = new Map<number, { reviews: MalReview[]; allUrl: string }>();
 
 // ── elements ────────────────────────────────────────────────────────
 const heroBg = $('#heroBg');
@@ -254,7 +251,7 @@ async function loadCharacters(animeId: number): Promise<void> {
         ok = true;
       }
     } catch {
-      /* transient (rate limit / Jikan 5xx / network) — don't cache, retry later */
+      /* transient (rate limit / 5xx / network) — don't cache, retry later */
     }
     // A failed load must not stick: clear the guard so the next render (MAL
     // update, settings close, idle return) retries instead of the empty result
@@ -281,78 +278,22 @@ async function loadCharacters(animeId: number): Promise<void> {
   charactersSection.hidden = chars.length === 0;
 }
 
-function reviewTagClass(tag: string): string {
-  const t = tag.toLowerCase();
-  if (t.includes('not')) return 'not';
-  if (t.includes('mixed')) return 'mixed';
-  if (t.includes('recommend')) return 'rec';
-  return '';
-}
-
-async function loadReviews(animeId: number): Promise<void> {
-  if (animeId === lastReviewId) return;
-  lastReviewId = animeId;
-  reviewsSection.hidden = true;
-  let data = reviewCache.get(animeId);
-  if (!data) {
-    let ok = false;
-    try {
-      const r = await requestMalReviews(animeId);
-      if (r.ok) {
-        data = { reviews: r.reviews, allUrl: r.allUrl ?? '' };
-        reviewCache.set(animeId, data); // cache ONLY a successful response
-        ok = true;
-      }
-    } catch {
-      /* transient (Jikan reviews endpoint 504s often) — don't cache, retry later */
-    }
-    if (!ok && animeId === lastReviewId) lastReviewId = null; // allow a retry
-    data ??= { reviews: [], allUrl: '' };
-  }
-  if (lastReviewId !== null && animeId !== lastReviewId) return;
+/**
+ * Reviews aren't in MAL's official API (and Jikan, which scraped them, is
+ * shutting down 2026-10-01), so we link out to the show's MAL reviews tab
+ * rather than embed. The URL is deterministic from the anime id — no request,
+ * nothing that can break.
+ */
+function showReviewsLink(animeId: number): void {
   reviewsList.replaceChildren();
-  for (const rv of data.reviews) {
-    const card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'review';
-    const top = document.createElement('div');
-    top.className = 'review-top';
-    top.innerHTML = '<div class="review-av"></div><span class="review-user"></span>';
-    setBg(top.querySelector('.review-av')!, rv.avatar);
-    top.querySelector<HTMLElement>('.review-user')!.textContent = rv.user;
-    if (rv.score) {
-      const score = document.createElement('span');
-      score.className = 'review-score';
-      score.innerHTML = '<span style="color:#ffc24b">★</span>';
-      score.append(String(rv.score));
-      top.appendChild(score);
-    }
-    if (rv.tag) {
-      const tag = document.createElement('span');
-      tag.className = `review-tag ${reviewTagClass(rv.tag)}`;
-      tag.textContent = rv.tag;
-      top.appendChild(tag);
-    }
-    const text = document.createElement('div');
-    text.className = 'review-text';
-    text.textContent = rv.text;
-    const more = document.createElement('div');
-    more.className = 'review-more';
-    more.textContent = 'Read full review →';
-    card.append(top, text, more);
-    if (rv.url) makeActivatable(card, () => window.open(rv.url, '_blank', 'noopener'));
-    reviewsList.appendChild(card);
-  }
-  if (data.reviews.length && data.allUrl) {
-    const all = document.createElement('a');
-    all.className = 'reviews-all';
-    all.href = data.allUrl;
-    all.target = '_blank';
-    all.rel = 'noopener';
-    all.textContent = 'View all reviews on MyAnimeList →';
-    reviewsList.appendChild(all);
-  }
-  reviewsSection.hidden = data.reviews.length === 0;
+  const link = document.createElement('a');
+  link.className = 'reviews-all';
+  link.href = `https://myanimelist.net/anime/${animeId}/reviews`;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.textContent = 'Read reviews on MyAnimeList →';
+  reviewsList.appendChild(link);
+  reviewsSection.hidden = false;
 }
 
 // ── your list (MAL controls) ────────────────────────────────────────
@@ -450,7 +391,7 @@ function applyMal(r: MalStatusResponse | undefined): void {
     if (r.animeId) {
       malLink.href = `https://myanimelist.net/anime/${r.animeId}`;
       void loadCharacters(r.animeId);
-      void loadReviews(r.animeId);
+      showReviewsLink(r.animeId);
     }
   } else {
     renderHero(); // clear the poster shimmer even when nothing matched

@@ -121,7 +121,7 @@ const manifest = {
     '*://static.crunchyroll.com/*',
     'https://myanimelist.net/*',
     'https://api.myanimelist.net/*',
-    'https://api.jikan.moe/*',
+    'https://graphql.anilist.co/*',
     'https://yoerrzzznpfcbsrrbocs.supabase.co/*',
   ],
 };

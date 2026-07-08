@@ -23,7 +23,6 @@ import {
   getAnimeStatus,
   getCharacters,
   getRecommendations,
-  getReviews,
   getSeasonal,
   getUserList,
   refresh,
@@ -405,12 +404,6 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
         .catch(() => sendResponse({ ok: false, characters: [] }));
       return true; // async response
     }
-    case 'GET_MAL_REVIEWS': {
-      getReviews(message.animeId)
-        .then(({ reviews, allUrl }) => sendResponse({ ok: true, reviews, allUrl }))
-        .catch(() => sendResponse({ ok: false, reviews: [] }));
-      return true; // async response
-    }
     case 'GET_MY_LIST': {
       (async () => {
         const access = await validAccessToken();
@@ -421,9 +414,11 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
       return true; // async response
     }
     case 'GET_SEASONAL': {
-      getSeasonal()
-        .then((items) => sendResponse({ ok: true, items }))
-        .catch(() => sendResponse({ ok: false, items: [] }));
+      (async () => {
+        const access = await validAccessToken(); // null → client-id header
+        const items = await getSeasonal(access);
+        sendResponse({ ok: true, items });
+      })().catch(() => sendResponse({ ok: false, items: [] }));
       return true; // async response
     }
     case 'GET_RECOMMENDATIONS': {
@@ -431,7 +426,7 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
         const access = await validAccessToken();
         const seed = await pickRecommendationSeed(access);
         if (!seed) return sendResponse({ ok: false, items: [] });
-        const recs = await getRecommendations(seed.animeId).catch(() => []);
+        const recs = await getRecommendations(access, seed.animeId).catch(() => []);
         // Drop shows already in the user's history — recommend the unseen.
         // Fully non-Latin titles normalize to '' (the normalizer is a-z0-9 only);
         // skip those rather than let every such title match every other.

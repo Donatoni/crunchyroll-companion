@@ -1,5 +1,12 @@
 import type { SkipSegment, TrackerMeta } from './types';
-import type { MalCharacter, MalListItem, MalRelated, SeasonalItem } from './mal';
+import type {
+  AniRanking,
+  AniStaff,
+  MalCharacter,
+  MalListItem,
+  MalRelated,
+  SeasonalItem,
+} from './mal';
 import { isExtensionContextValid } from './runtime';
 
 /**
@@ -89,6 +96,8 @@ export interface MalStatusResponse {
   rewatchCount?: number;
   /** Rich show details (present on GET_MAL_STATUS, omitted after SET). */
   synopsis?: string;
+  /** MAL "background" trivia prose (often empty). */
+  background?: string;
   picture?: string | null;
   genres?: string[];
   rank?: number | null;
@@ -103,7 +112,7 @@ export interface MalStatusResponse {
   error?: string;
 }
 
-/** Side panel -> worker: character list (via AniList) for an anime. */
+/** Side panel -> worker: characters + rankings + staff (AniList). */
 export interface MalCharactersRequest {
   type: 'GET_MAL_CHARACTERS';
   animeId: number;
@@ -111,6 +120,8 @@ export interface MalCharactersRequest {
 export interface MalCharactersResponse {
   ok: boolean;
   characters: MalCharacter[];
+  rankings?: AniRanking[];
+  staff?: AniStaff[];
 }
 
 

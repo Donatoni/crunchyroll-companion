@@ -21,7 +21,7 @@ import {
 import {
   getAnimeDetails,
   getAnimeStatus,
-  getCharacters,
+  getShowExtras,
   getRecommendations,
   getSeasonal,
   getUserList,
@@ -384,6 +384,7 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
           rewatching: d.rewatching,
           rewatchCount: d.rewatchCount,
           synopsis: d.synopsis,
+          background: d.background,
           picture: d.picture,
           genres: d.genres,
           rank: d.rank,
@@ -399,9 +400,11 @@ chrome.runtime.onMessage.addListener((message: RuntimeMessage, sender, sendRespo
       return true; // async response
     }
     case 'GET_MAL_CHARACTERS': {
-      getCharacters(message.animeId)
-        .then((characters) => sendResponse({ ok: true, characters }))
-        .catch(() => sendResponse({ ok: false, characters: [] }));
+      getShowExtras(message.animeId)
+        .then(({ characters, rankings, staff }) =>
+          sendResponse({ ok: true, characters, rankings, staff }),
+        )
+        .catch(() => sendResponse({ ok: false, characters: [], rankings: [], staff: [] }));
       return true; // async response
     }
     case 'GET_MY_LIST': {

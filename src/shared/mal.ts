@@ -204,6 +204,8 @@ export interface MalCharacter {
 export interface MalDetails extends MalStatus {
   title: string;
   synopsis: string;
+  /** MAL "background" — prose trivia (awards, records, releases). Often empty. */
+  background: string;
   /** Poster image (MAL main_picture). */
   picture: string | null;
   genres: string[];
@@ -229,7 +231,7 @@ export async function getAnimeDetails(
   animeId: number,
 ): Promise<MalDetails> {
   const fields =
-    'title,synopsis,main_picture,genres,mean,rank,num_episodes,media_type,start_season,studios,status,broadcast,' +
+    'title,synopsis,background,main_picture,genres,mean,rank,num_episodes,media_type,start_season,studios,status,broadcast,' +
     'related_anime{media_type,num_episodes,main_picture}' +
     (access ? ',my_list_status{status,score,num_episodes_watched,is_rewatching,num_times_rewatched}' : '');
   const res = await fetch(`${API}/anime/${animeId}?fields=${fields}`, {
@@ -242,6 +244,7 @@ export async function getAnimeDetails(
   return {
     title: j.title ?? '',
     synopsis: j.synopsis ?? '',
+    background: j.background ?? '',
     picture: j.main_picture?.large ?? j.main_picture?.medium ?? null,
     genres: (j.genres ?? []).map((g: { name: string }) => g.name),
     mean: j.mean ?? null,
@@ -282,31 +285,59 @@ export async function getAnimeDetails(
 // resolution is reused unchanged. Free, no auth for public data.
 const ANILIST = 'https://graphql.anilist.co';
 
-const CHARACTERS_QUERY = `query ($idMal: Int) {
+/** An AniList ranking accolade, e.g. "#1 Most Popular · Fall 2006". */
+export interface AniRanking {
+  rank: number;
+  /** AniList's label, e.g. "most popular all time" / "highest rated". */
+  context: string;
+  allTime: boolean;
+  season: string | null;
+  year: number | null;
+}
+
+/** A staff credit, e.g. { role: "Director", name: "Tetsurou Araki" }. */
+export interface AniStaff {
+  role: string;
+  name: string;
+}
+
+export interface ShowExtras {
+  characters: MalCharacter[];
+  /** Prestige rankings (all-time + seasonal), most notable first. */
+  rankings: AniRanking[];
+  /** Key staff credits. */
+  staff: AniStaff[];
+}
+
+const EXTRAS_QUERY = `query ($idMal: Int) {
   Media(idMal: $idMal, type: ANIME) {
     characters(sort: [ROLE, RELEVANCE], perPage: 14) {
       edges { role node { name { full } image { large } siteUrl } }
     }
+    rankings { rank context allTime season year }
+    staff(sort: RELEVANCE, perPage: 6) { edges { role node { name { full } } } }
   }
 }`;
 
 /**
- * Characters for an anime via AniList, looked up by MAL id. Best-effort —
- * callers should tolerate this throwing / returning [].
+ * Characters + rankings + staff for an anime via AniList, looked up by MAL id,
+ * in ONE request. Best-effort — callers tolerate throw / empties.
  */
-export async function getCharacters(animeId: number): Promise<MalCharacter[]> {
+export async function getShowExtras(animeId: number): Promise<ShowExtras> {
   const res = await fetch(ANILIST, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-    body: JSON.stringify({ query: CHARACTERS_QUERY, variables: { idMal: animeId } }),
+    body: JSON.stringify({ query: EXTRAS_QUERY, variables: { idMal: animeId } }),
   });
   if (!res.ok) throw new Error(`AniList HTTP ${res.status}`);
   const j = await res.json();
-  const edges: Array<{
+  const media = j.data?.Media;
+
+  const charEdges: Array<{
     role?: string;
     node?: { name?: { full?: string }; image?: { large?: string }; siteUrl?: string };
-  }> = j.data?.Media?.characters?.edges ?? [];
-  return edges
+  }> = media?.characters?.edges ?? [];
+  const characters = charEdges
     .map((e) => ({
       name: e.node?.name?.full ?? '',
       image: e.node?.image?.large ?? null,
@@ -315,6 +346,34 @@ export async function getCharacters(animeId: number): Promise<MalCharacter[]> {
       url: e.node?.siteUrl ?? null,
     }))
     .filter((c) => c.name);
+
+  const rawRankings: Array<{
+    rank?: number;
+    context?: string;
+    allTime?: boolean;
+    season?: string | null;
+    year?: number | null;
+  }> = media?.rankings ?? [];
+  // Keep the prestige ones (all-time first, then seasonal), cap the list.
+  const rankings: AniRanking[] = rawRankings
+    .filter((r) => typeof r.rank === 'number' && r.context)
+    .map((r) => ({
+      rank: r.rank as number,
+      context: r.context as string,
+      allTime: !!r.allTime,
+      season: r.season ?? null,
+      year: r.year ?? null,
+    }))
+    .sort((a, b) => Number(b.allTime) - Number(a.allTime) || a.rank - b.rank)
+    .slice(0, 4);
+
+  const staffEdges: Array<{ role?: string; node?: { name?: { full?: string } } }> =
+    media?.staff?.edges ?? [];
+  const staff: AniStaff[] = staffEdges
+    .map((e) => ({ role: e.role ?? '', name: e.node?.name?.full ?? '' }))
+    .filter((s) => s.role && s.name);
+
+  return { characters, rankings, staff };
 }
 
 export interface MalListItem {

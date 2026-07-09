@@ -160,21 +160,23 @@ body {
 .char .cn { font-size: 10.5px; margin-top: 6px; color: var(--text-2); line-height: 1.25; }
 .char .cr { font-size: 9.5px; color: var(--text-3); font-family: var(--mono); }
 
-/* ── reviews ── */
-.review { display: block; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 13px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
-.review:hover { border-color: var(--line-strong); background: var(--surface-2); }
-.review-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.review-av { width: 26px; height: 26px; flex: 0 0 auto; border-radius: 50%; background: var(--surface-3) center/cover no-repeat; border: 1px solid var(--line); }
-.review-user { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.review-score { font: 600 11px var(--mono); color: #ffc24b; display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; }
-.review-tag { font: 600 8.5px var(--mono); letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 7px; border-radius: 999px; flex: 0 0 auto; white-space: nowrap; }
-.review-tag.rec { color: var(--green); background: rgba(52, 210, 123, 0.12); }
-.review-tag.mixed { color: #f0b429; background: rgba(240, 180, 41, 0.12); }
-.review-tag.not { color: #f0596b; background: rgba(240, 89, 107, 0.12); }
-.review-text { font-size: 12px; line-height: 1.55; color: var(--text-2); display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
-.review-more { margin-top: 8px; font: 600 11px var(--mono); color: var(--accent); }
-.reviews-all { display: block; text-align: center; padding: 6px 4px 2px; text-decoration: none; color: var(--text-2); font: 600 12px var(--sans); }
-.reviews-all:hover { color: var(--text); }
+/* rankings (AniList accolades) */
+.rankings { display: flex; flex-wrap: wrap; gap: 8px; }
+.rank-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px 6px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 11.5px; color: var(--text-2); }
+.rank-chip.all-time { background: var(--accent-dim); border-color: rgba(244,117,33,0.35); color: var(--text); }
+.rank-num { font: 700 11px var(--mono); color: var(--text-3); }
+.rank-chip.all-time .rank-num { color: var(--accent-bright); }
+
+/* staff / credits (AniList) */
+.staff { display: flex; flex-direction: column; }
+.staff-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
+.staff-row:first-child { border-top: none; }
+.staff-role { flex: 0 0 40%; font: 500 10.5px var(--mono); letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-3); }
+.staff-name { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text); }
+
+/* trivia (MAL background prose) */
+.trivia-text { font-size: 12.5px; line-height: 1.6; color: var(--text-2); white-space: pre-line; }
+.trivia-text.clamp { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* ── home dashboard — concept C "Your run" ── */
 .home-run {

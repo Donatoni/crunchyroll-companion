@@ -10,7 +10,7 @@ import {
   requestMalCharacters,
   type MalStatusResponse,
 } from '@/shared/messages';
-import type { MalCharacter, MalRelated } from '@/shared/mal';
+import type { AniRanking, AniStaff, MalCharacter, MalRelated } from '@/shared/mal';
 import { formatAirDate, nextBroadcastDate } from '@/shared/broadcast';
 import { confettiBurst } from '@/shared/confetti';
 import { $, esc, makeActivatable, makeRailScrollable, scrollPanelTop, setBg } from './helpers';
@@ -37,7 +37,10 @@ let malResp: MalStatusResponse | undefined;
 let malTotal: number | null = null;
 let lastMetaKey = '';
 let lastCharId: number | null = null;
-const charCache = new Map<number, MalCharacter[]>();
+const extrasCache = new Map<
+  number,
+  { characters: MalCharacter[]; rankings: AniRanking[]; staff: AniStaff[] }
+>();
 
 // ── elements ────────────────────────────────────────────────────────
 const heroBg = $('#heroBg');
@@ -81,8 +84,13 @@ const seasonsSection = $('#seasonsSection');
 const seasonsRail = $('#seasonsRail');
 const charactersSection = $('#charactersSection');
 const charactersRail = $('#charactersRail');
-const reviewsSection = $('#reviewsSection');
-const reviewsList = $('#reviewsList');
+const rankingsSection = $('#rankingsSection');
+const rankingsList = $('#rankingsList');
+const staffSection = $('#staffSection');
+const staffList = $('#staffList');
+const triviaSection = $('#triviaSection');
+const triviaText = $('#triviaText');
+const triviaMore = $('#triviaMore');
 const airPill = $('#airPill');
 const airPillText = $('#airPillText');
 
@@ -122,6 +130,7 @@ function hideDetails(): void {
   genresEl.hidden = true;
   synopsisWrap.hidden = true;
   seasonsSection.hidden = true;
+  triviaSection.hidden = true;
 }
 
 /**
@@ -197,6 +206,9 @@ function renderDetails(r: MalStatusResponse): void {
 
   // seasons / related
   renderSeasons(r.related ?? []);
+
+  // trivia (MAL background)
+  renderTrivia(r.background ?? '');
 }
 
 synMore.addEventListener('click', () => {
@@ -236,18 +248,21 @@ function renderSeasons(related: MalRelated[]): void {
   seasonsSection.hidden = seasonsRail.children.length === 0;
 }
 
-async function loadCharacters(animeId: number): Promise<void> {
+/** Characters rail + rankings + staff (all from one AniList call). */
+async function loadExtras(animeId: number): Promise<void> {
   if (animeId === lastCharId) return;
   lastCharId = animeId;
   charactersSection.hidden = true;
-  let chars = charCache.get(animeId);
-  if (!chars) {
+  rankingsSection.hidden = true;
+  staffSection.hidden = true;
+  let extras = extrasCache.get(animeId);
+  if (!extras) {
     let ok = false;
     try {
       const r = await requestMalCharacters(animeId);
       if (r.ok) {
-        chars = r.characters;
-        charCache.set(animeId, chars); // cache ONLY a successful response
+        extras = { characters: r.characters, rankings: r.rankings ?? [], staff: r.staff ?? [] };
+        extrasCache.set(animeId, extras); // cache ONLY a successful response
         ok = true;
       }
     } catch {
@@ -257,11 +272,12 @@ async function loadCharacters(animeId: number): Promise<void> {
     // update, settings close, idle return) retries instead of the empty result
     // being pinned for the whole panel session.
     if (!ok && animeId === lastCharId) lastCharId = null;
-    chars ??= [];
+    extras ??= { characters: [], rankings: [], staff: [] };
   }
   if (lastCharId !== null && animeId !== lastCharId) return; // changed while loading
+
   charactersRail.replaceChildren();
-  for (const c of chars) {
+  for (const c of extras.characters) {
     const el = document.createElement('div');
     el.className = 'char';
     el.innerHTML = '<div class="av"></div><div class="cn"></div><div class="cr"></div>';
@@ -275,26 +291,80 @@ async function loadCharacters(animeId: number): Promise<void> {
     }
     charactersRail.appendChild(el);
   }
-  charactersSection.hidden = chars.length === 0;
+  charactersSection.hidden = extras.characters.length === 0;
+
+  renderRankings(extras.rankings);
+  renderStaff(extras.staff);
+}
+
+/** Title-case AniList's lowercase ranking context ("most popular" → "Most Popular"). */
+function titleCaseContext(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/** Prestige rankings as accolade chips (e.g. "#1 Most Popular · Fall 2006"). */
+function renderRankings(rankings: AniRanking[]): void {
+  rankingsList.replaceChildren();
+  for (const r of rankings) {
+    const chip = document.createElement('span');
+    chip.className = 'rank-chip' + (r.allTime ? ' all-time' : '');
+    const num = document.createElement('span');
+    num.className = 'rank-num';
+    num.textContent = `#${r.rank}`;
+    const label = document.createElement('span');
+    const where = r.allTime
+      ? 'All Time'
+      : [r.season ? titleCaseContext(r.season.toLowerCase()) : null, r.year]
+          .filter(Boolean)
+          .join(' ');
+    label.textContent = `${titleCaseContext(r.context)}${where ? ` · ${where}` : ''}`;
+    chip.append(num, label);
+    rankingsList.appendChild(chip);
+  }
+  rankingsSection.hidden = rankings.length === 0;
+}
+
+/** Key staff credits as role → name rows. */
+function renderStaff(staff: AniStaff[]): void {
+  staffList.replaceChildren();
+  for (const s of staff) {
+    const row = document.createElement('div');
+    row.className = 'staff-row';
+    const role = document.createElement('span');
+    role.className = 'staff-role';
+    role.textContent = s.role;
+    const name = document.createElement('span');
+    name.className = 'staff-name';
+    name.textContent = s.name;
+    row.append(role, name);
+    staffList.appendChild(row);
+  }
+  staffSection.hidden = staff.length === 0;
 }
 
 /**
- * Reviews aren't in MAL's official API (and Jikan, which scraped them, is
- * shutting down 2026-10-01), so we link out to the show's MAL reviews tab
- * rather than embed. The URL is deterministic from the anime id — no request,
- * nothing that can break.
+ * Trivia — MAL's "background" prose (awards, box-office, releases). Often empty,
+ * so the section hides when there's nothing. Clamped with a Read more toggle.
  */
-function showReviewsLink(animeId: number): void {
-  reviewsList.replaceChildren();
-  const link = document.createElement('a');
-  link.className = 'reviews-all';
-  link.href = `https://myanimelist.net/anime/${animeId}/reviews`;
-  link.target = '_blank';
-  link.rel = 'noopener';
-  link.textContent = 'Read reviews on MyAnimeList →';
-  reviewsList.appendChild(link);
-  reviewsSection.hidden = false;
+function renderTrivia(background: string): void {
+  const text = background.trim();
+  triviaText.textContent = text;
+  triviaText.classList.add('clamp');
+  triviaMore.textContent = 'Read more';
+  triviaMore.setAttribute('aria-expanded', 'false');
+  triviaSection.hidden = !text;
+  triviaMore.hidden = true;
+  if (text) {
+    requestAnimationFrame(() => {
+      triviaMore.hidden = triviaText.scrollHeight <= triviaText.clientHeight;
+    });
+  }
 }
+triviaMore.addEventListener('click', () => {
+  const clamped = triviaText.classList.toggle('clamp');
+  triviaMore.textContent = clamped ? 'Read more' : 'Show less';
+  triviaMore.setAttribute('aria-expanded', String(!clamped));
+});
 
 // ── your list (MAL controls) ────────────────────────────────────────
 function setStatusControl(value: string): void {
@@ -390,14 +460,14 @@ function applyMal(r: MalStatusResponse | undefined): void {
     renderDetails(r);
     if (r.animeId) {
       malLink.href = `https://myanimelist.net/anime/${r.animeId}`;
-      void loadCharacters(r.animeId);
-      showReviewsLink(r.animeId);
+      void loadExtras(r.animeId);
     }
   } else {
     renderHero(); // clear the poster shimmer even when nothing matched
     hideDetails();
     charactersSection.hidden = true;
-    reviewsSection.hidden = true;
+    rankingsSection.hidden = true;
+    staffSection.hidden = true;
   }
 
   // Your-list card (signed in + matched) vs nudge (not signed in) vs note.

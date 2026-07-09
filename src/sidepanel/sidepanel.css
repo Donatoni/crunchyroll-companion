@@ -160,19 +160,45 @@ body {
 .char .cn { font-size: 10.5px; margin-top: 6px; color: var(--text-2); line-height: 1.25; }
 .char .cr { font-size: 9.5px; color: var(--text-3); font-family: var(--mono); }
 
-/* rankings (AniList accolades) */
-.rankings { display: flex; flex-wrap: wrap; gap: 8px; }
-.rank-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px 6px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 11.5px; color: var(--text-2); }
-.rank-chip.all-time { background: var(--accent-dim); border-color: rgba(244,117,33,0.35); color: var(--text); }
-.rank-num { font: 700 11px var(--mono); color: var(--text-3); }
-.rank-chip.all-time .rank-num { color: var(--accent-bright); }
+/* rankings (AniList accolades) — flat typographic leaderboard over a slow aurora */
+#rankingsSection { position: relative; overflow: hidden; }
+#rankingsSection .sec-head, #rankingsSection .rankings { position: relative; }
+.acc-aurora { position: absolute; inset: 0; pointer-events: none; }
+.acc-aurora::before, .acc-aurora::after { content: ''; position: absolute; width: 260px; height: 260px; border-radius: 50%; filter: blur(52px); will-change: transform; }
+.acc-aurora::before { background: rgba(244, 117, 33, 0.13); top: -150px; left: -90px; animation: aurora-a 16s ease-in-out infinite alternate; }
+.acc-aurora::after { background: rgba(255, 149, 80, 0.08); bottom: -170px; right: -70px; animation: aurora-b 21s ease-in-out infinite alternate; }
+@keyframes aurora-a { from { transform: translate(0, 0) scale(1); } to { transform: translate(110px, 50px) scale(1.2); } }
+@keyframes aurora-b { from { transform: translate(0, 0) scale(1.15); } to { transform: translate(-130px, -40px) scale(0.9); } }
+.rankings { display: flex; flex-direction: column; gap: 16px; }
+.acc-heroes { display: flex; flex-direction: column; gap: 12px; }
+.acc-hero { display: flex; align-items: center; gap: 14px; }
+.acc-hero .acc-rank {
+  font: 800 40px var(--mono); letter-spacing: -0.05em; line-height: 0.95;
+  background: linear-gradient(180deg, #ff9a52, #f0680f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.acc-hero .acc-meta { min-width: 0; }
+.acc-hero .acc-ctx { font-size: 14px; font-weight: 650; color: var(--text); line-height: 1.2; }
+.acc-hero .acc-scope { font: 600 9.5px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); margin-top: 3px; }
+.acc-cells { display: flex; }
+.acc-cell { flex: 1; min-width: 0; padding: 0 12px; }
+.acc-cell:first-child { padding-left: 0; }
+.acc-cell + .acc-cell { border-left: 1px solid var(--line-strong); }
+.acc-cell .acc-rank { font: 700 16px var(--mono); letter-spacing: -0.02em; color: var(--text); }
+.acc-cell .acc-ctx { font-size: 11px; color: var(--text-2); line-height: 1.3; margin-top: 3px; }
+.acc-cell .acc-scope { font: 500 9px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-top: 2px; }
 
-/* staff / credits (AniList) */
+/* staff / credits (AniList) — flat rows: portrait, name, role */
 .staff { display: flex; flex-direction: column; }
-.staff-row { display: flex; align-items: baseline; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); }
-.staff-row:first-child { border-top: none; }
-.staff-role { flex: 0 0 40%; font: 500 10.5px var(--mono); letter-spacing: 0.03em; text-transform: uppercase; color: var(--text-3); }
-.staff-name { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text); }
+.staff-card { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 7px 0; border-top: 1px solid var(--line); }
+.staff-card:first-child { border-top: none; padding-top: 0; }
+.staff-card.link { cursor: pointer; }
+.staff-card.link:hover .sn { color: var(--accent-bright); }
+.staff-card .pv { width: 30px; height: 30px; flex: 0 0 auto; border-radius: 50%; background: var(--surface-3) center/cover no-repeat; display: grid; place-items: center; font: 600 10px var(--mono); color: var(--text-3); }
+.staff-card .who { flex: 1; min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+/* The name wins the space fight — long merged roles ellipsize first (full text in the tooltip). */
+.staff-card .sn { flex-shrink: 0; max-width: 62%; overflow: hidden; font-size: 12.5px; color: var(--text); white-space: nowrap; text-overflow: ellipsis; }
+.staff-card .sr { min-width: 0; font: 500 9.5px var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* trivia (MAL background prose) */
 .trivia-text { font-size: 12.5px; line-height: 1.6; color: var(--text-2); white-space: pre-line; }

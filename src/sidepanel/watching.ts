@@ -302,42 +302,86 @@ function titleCaseContext(s: string): string {
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Prestige rankings as accolade chips (e.g. "#1 Most Popular · Fall 2006"). */
+/**
+ * Prestige rankings as a trophy shelf: all-time accolades get a marquee card
+ * with a big gradient rank, seasonal ones a row of compact stat cells.
+ */
 function renderRankings(rankings: AniRanking[]): void {
   rankingsList.replaceChildren();
-  for (const r of rankings) {
-    const chip = document.createElement('span');
-    chip.className = 'rank-chip' + (r.allTime ? ' all-time' : '');
-    const num = document.createElement('span');
-    num.className = 'rank-num';
-    num.textContent = `#${r.rank}`;
-    const label = document.createElement('span');
-    const where = r.allTime
+  // AniList's all-time contexts already say "all time" — the scope line covers it.
+  const contextOf = (r: AniRanking) =>
+    titleCaseContext(r.context.replace(/\s*all time\s*$/i, ''));
+  const scopeOf = (r: AniRanking) =>
+    r.allTime
       ? 'All Time'
       : [r.season ? titleCaseContext(r.season.toLowerCase()) : null, r.year]
           .filter(Boolean)
           .join(' ');
-    label.textContent = `${titleCaseContext(r.context)}${where ? ` · ${where}` : ''}`;
-    chip.append(num, label);
-    rankingsList.appendChild(chip);
+
+  const heroes = rankings.filter((r) => r.allTime);
+  const cells = rankings.filter((r) => !r.allTime);
+
+  if (heroes.length) {
+    const row = document.createElement('div');
+    row.className = 'acc-heroes';
+    for (const r of heroes) {
+      const card = document.createElement('div');
+      card.className = 'acc-hero';
+      card.innerHTML =
+        '<div class="acc-rank"></div><div class="acc-meta"><div class="acc-ctx"></div><div class="acc-scope"></div></div>';
+      card.querySelector<HTMLElement>('.acc-rank')!.textContent = `#${r.rank}`;
+      card.querySelector<HTMLElement>('.acc-ctx')!.textContent = contextOf(r);
+      card.querySelector<HTMLElement>('.acc-scope')!.textContent = scopeOf(r);
+      row.appendChild(card);
+    }
+    rankingsList.appendChild(row);
+  }
+  if (cells.length) {
+    const row = document.createElement('div');
+    row.className = 'acc-cells';
+    for (const r of cells) {
+      const cell = document.createElement('div');
+      cell.className = 'acc-cell';
+      cell.innerHTML =
+        '<div class="acc-rank"></div><div class="acc-ctx"></div><div class="acc-scope"></div>';
+      cell.querySelector<HTMLElement>('.acc-rank')!.textContent = `#${r.rank}`;
+      cell.querySelector<HTMLElement>('.acc-ctx')!.textContent = contextOf(r);
+      cell.querySelector<HTMLElement>('.acc-scope')!.textContent = scopeOf(r);
+      row.appendChild(cell);
+    }
+    rankingsList.appendChild(row);
   }
   rankingsSection.hidden = rankings.length === 0;
 }
 
-/** Key staff credits as role → name rows. */
+/** Key staff as a credits grid: portrait, name, role — clickable to AniList. */
 function renderStaff(staff: AniStaff[]): void {
   staffList.replaceChildren();
   for (const s of staff) {
-    const row = document.createElement('div');
-    row.className = 'staff-row';
-    const role = document.createElement('span');
-    role.className = 'staff-role';
-    role.textContent = s.role;
-    const name = document.createElement('span');
-    name.className = 'staff-name';
-    name.textContent = s.name;
-    row.append(role, name);
-    staffList.appendChild(row);
+    const card = document.createElement('div');
+    card.className = 'staff-card';
+    card.innerHTML =
+      '<div class="pv"></div><div class="who"><div class="sn"></div><div class="sr"></div></div>';
+    const pv = card.querySelector<HTMLElement>('.pv')!;
+    if (s.image) {
+      setBg(pv, s.image);
+    } else {
+      // No portrait on AniList — show initials instead.
+      pv.textContent = s.name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((w) => w[0] ?? '')
+        .join('')
+        .toUpperCase();
+    }
+    card.querySelector<HTMLElement>('.sn')!.textContent = s.name;
+    card.querySelector<HTMLElement>('.sr')!.textContent = s.role;
+    card.title = `${s.name} — ${s.role}`;
+    if (s.url) {
+      card.classList.add('link');
+      makeActivatable(card, () => window.open(s.url!, '_blank', 'noopener'));
+    }
+    staffList.appendChild(card);
   }
   staffSection.hidden = staff.length === 0;
 }

@@ -299,6 +299,8 @@ export interface AniRanking {
 export interface AniStaff {
   role: string;
   name: string;
+  image: string | null;
+  url: string | null;
 }
 
 export interface ShowExtras {
@@ -315,7 +317,7 @@ const EXTRAS_QUERY = `query ($idMal: Int) {
       edges { role node { name { full } image { large } siteUrl } }
     }
     rankings { rank context allTime season year }
-    staff(sort: RELEVANCE, perPage: 6) { edges { role node { name { full } } } }
+    staff(sort: RELEVANCE, perPage: 9) { edges { role node { name { full } image { medium } siteUrl } } }
   }
 }`;
 
@@ -367,11 +369,29 @@ export async function getShowExtras(animeId: number): Promise<ShowExtras> {
     .sort((a, b) => Number(b.allTime) - Number(a.allTime) || a.rank - b.rank)
     .slice(0, 4);
 
-  const staffEdges: Array<{ role?: string; node?: { name?: { full?: string } } }> =
-    media?.staff?.edges ?? [];
-  const staff: AniStaff[] = staffEdges
-    .map((e) => ({ role: e.role ?? '', name: e.node?.name?.full ?? '' }))
-    .filter((s) => s.role && s.name);
+  const staffEdges: Array<{
+    role?: string;
+    node?: { name?: { full?: string }; image?: { medium?: string }; siteUrl?: string };
+  }> = media?.staff?.edges ?? [];
+  // One card per person: AniList lists someone once per role, so merge
+  // duplicates ("Director" + "Storyboard" → "Director · Storyboard").
+  const byName = new Map<string, AniStaff>();
+  for (const e of staffEdges) {
+    const name = e.node?.name?.full ?? '';
+    if (!name || !e.role) continue;
+    const prev = byName.get(name);
+    if (prev) {
+      if (!prev.role.includes(e.role)) prev.role += ` · ${e.role}`;
+    } else {
+      byName.set(name, {
+        role: e.role,
+        name,
+        image: e.node?.image?.medium ?? null,
+        url: e.node?.siteUrl ?? null,
+      });
+    }
+  }
+  const staff = [...byName.values()].slice(0, 6);
 
   return { characters, rankings, staff };
 }

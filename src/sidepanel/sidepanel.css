@@ -160,15 +160,7 @@ body {
 .char .cn { font-size: 10.5px; margin-top: 6px; color: var(--text-2); line-height: 1.25; }
 .char .cr { font-size: 9.5px; color: var(--text-3); font-family: var(--mono); }
 
-/* rankings (AniList accolades) — flat typographic leaderboard over a slow aurora */
-#rankingsSection { position: relative; overflow: hidden; }
-#rankingsSection .sec-head, #rankingsSection .rankings { position: relative; }
-.acc-aurora { position: absolute; inset: 0; pointer-events: none; }
-.acc-aurora::before, .acc-aurora::after { content: ''; position: absolute; width: 260px; height: 260px; border-radius: 50%; filter: blur(52px); will-change: transform; }
-.acc-aurora::before { background: rgba(244, 117, 33, 0.13); top: -150px; left: -90px; animation: aurora-a 16s ease-in-out infinite alternate; }
-.acc-aurora::after { background: rgba(255, 149, 80, 0.08); bottom: -170px; right: -70px; animation: aurora-b 21s ease-in-out infinite alternate; }
-@keyframes aurora-a { from { transform: translate(0, 0) scale(1); } to { transform: translate(110px, 50px) scale(1.2); } }
-@keyframes aurora-b { from { transform: translate(0, 0) scale(1.15); } to { transform: translate(-130px, -40px) scale(0.9); } }
+/* rankings (AniList accolades) — flat typographic leaderboard */
 .rankings { display: flex; flex-direction: column; gap: 16px; }
 .acc-heroes { display: flex; flex-direction: column; gap: 12px; }
 .acc-hero { display: flex; align-items: center; gap: 14px; }

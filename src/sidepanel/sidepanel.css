@@ -193,11 +193,13 @@ body {
 .staff-card { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 7px 0; border-top: 1px solid var(--line); }
 .staff-card:first-child { border-top: none; padding-top: 0; }
 .staff-card.link { cursor: pointer; }
-.staff-card.link:hover .sn { color: var(--accent-bright); }
-.staff-card .pv { width: 30px; height: 30px; flex: 0 0 auto; border-radius: 50%; background: var(--surface-3) center/cover no-repeat; display: grid; place-items: center; font: 600 10px var(--mono); color: var(--text-3); }
+/* match the character rail: name brightens to --text, portrait scales up */
+.staff-card.link:hover .sn { color: var(--text); }
+.staff-card.link:hover .pv { transform: scale(1.05); }
+.staff-card .pv { width: 30px; height: 30px; flex: 0 0 auto; border-radius: 50%; background: var(--surface-3) center/cover no-repeat; display: grid; place-items: center; font: 600 10px var(--mono); color: var(--text-3); transition: transform 0.15s ease; }
 .staff-card .who { flex: 1; min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 /* The name wins the space fight — long merged roles ellipsize first (full text in the tooltip). */
-.staff-card .sn { flex-shrink: 0; max-width: 62%; overflow: hidden; font-size: 12.5px; color: var(--text); white-space: nowrap; text-overflow: ellipsis; }
+.staff-card .sn { flex-shrink: 0; max-width: 62%; overflow: hidden; font-size: 12.5px; color: var(--text-2); white-space: nowrap; text-overflow: ellipsis; }
 .staff-card .sr { min-width: 0; font: 500 9.5px var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-3); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* trivia (MAL background prose) */

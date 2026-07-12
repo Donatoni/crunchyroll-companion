@@ -288,6 +288,8 @@ const ANILIST = 'https://graphql.anilist.co';
 /** An AniList ranking accolade, e.g. "#1 Most Popular · Fall 2006". */
 export interface AniRanking {
   rank: number;
+  /** Accolade family: RATED (by score) or POPULAR (by members). */
+  type: 'RATED' | 'POPULAR';
   /** AniList's label, e.g. "most popular all time" / "highest rated". */
   context: string;
   allTime: boolean;
@@ -316,7 +318,7 @@ const EXTRAS_QUERY = `query ($idMal: Int) {
     characters(sort: [ROLE, RELEVANCE], perPage: 14) {
       edges { role node { name { full } image { large } siteUrl } }
     }
-    rankings { rank context allTime season year }
+    rankings { rank type context allTime season year }
     staff(sort: RELEVANCE, perPage: 9) { edges { role node { name { full } image { medium } siteUrl } } }
   }
 }`;
@@ -351,23 +353,29 @@ export async function getShowExtras(animeId: number): Promise<ShowExtras> {
 
   const rawRankings: Array<{
     rank?: number;
+    type?: string;
     context?: string;
     allTime?: boolean;
     season?: string | null;
     year?: number | null;
   }> = media?.rankings ?? [];
-  // Keep the prestige ones (all-time first, then seasonal), cap the list.
+  // Return every accolade (AniList caps at ~6 per show: rated/popular ×
+  // all-time/year/season); the renderer normalizes them into fixed slots.
   const rankings: AniRanking[] = rawRankings
     .filter((r) => typeof r.rank === 'number' && r.context)
     .map((r) => ({
       rank: r.rank as number,
+      // Fall back to sniffing the context so a missing `type` degrades sanely.
+      type: (r.type === 'RATED' || /rated|score/i.test(r.context as string)
+        ? 'RATED'
+        : 'POPULAR') as AniRanking['type'],
       context: r.context as string,
       allTime: !!r.allTime,
       season: r.season ?? null,
       year: r.year ?? null,
     }))
     .sort((a, b) => Number(b.allTime) - Number(a.allTime) || a.rank - b.rank)
-    .slice(0, 4);
+    .slice(0, 8);
 
   const staffEdges: Array<{
     role?: string;

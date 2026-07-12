@@ -303,14 +303,13 @@ function titleCaseContext(s: string): string {
 }
 
 /**
- * Prestige rankings as a trophy shelf: all-time accolades get a marquee card
- * with a big gradient rank, seasonal ones a row of compact stat cells.
+ * Rankings as two fixed marquee slots — Highest Rated and Most Popular — so
+ * every show gets the same layout no matter which accolades AniList returns.
+ * Each slot leads with the show's best rank in that family and footnotes the
+ * best remaining accolade from a different scope ("ALSO #9 ALL TIME").
  */
 function renderRankings(rankings: AniRanking[]): void {
   rankingsList.replaceChildren();
-  // AniList's all-time contexts already say "all time" — the scope line covers it.
-  const contextOf = (r: AniRanking) =>
-    titleCaseContext(r.context.replace(/\s*all time\s*$/i, ''));
   const scopeOf = (r: AniRanking) =>
     r.allTime
       ? 'All Time'
@@ -318,40 +317,34 @@ function renderRankings(rankings: AniRanking[]): void {
           .filter(Boolean)
           .join(' ');
 
-  const heroes = rankings.filter((r) => r.allTime);
-  const cells = rankings.filter((r) => !r.allTime);
+  const SLOTS: Array<{ type: AniRanking['type']; label: string }> = [
+    { type: 'RATED', label: 'Highest Rated' },
+    { type: 'POPULAR', label: 'Most Popular' },
+  ];
+  for (const slot of SLOTS) {
+    const pool = rankings
+      .filter((r) => r.type === slot.type)
+      .sort((a, b) => a.rank - b.rank);
+    const best = pool[0];
+    if (!best) continue;
+    const also = pool.find((r) => scopeOf(r) !== scopeOf(best));
 
-  if (heroes.length) {
-    const row = document.createElement('div');
-    row.className = 'acc-heroes';
-    for (const r of heroes) {
-      const card = document.createElement('div');
-      card.className = 'acc-hero';
-      card.innerHTML =
-        '<div class="acc-rank"></div><div class="acc-meta"><div class="acc-ctx"></div><div class="acc-scope"></div></div>';
-      card.querySelector<HTMLElement>('.acc-rank')!.textContent = `#${r.rank}`;
-      card.querySelector<HTMLElement>('.acc-ctx')!.textContent = contextOf(r);
-      card.querySelector<HTMLElement>('.acc-scope')!.textContent = scopeOf(r);
-      row.appendChild(card);
+    const el = document.createElement('div');
+    el.className = 'acc-slot';
+    el.innerHTML =
+      '<div class="acc-rank"></div><div class="acc-ctx"></div><div class="acc-scope"></div>';
+    el.querySelector<HTMLElement>('.acc-rank')!.textContent = `#${best.rank}`;
+    el.querySelector<HTMLElement>('.acc-ctx')!.textContent = slot.label;
+    el.querySelector<HTMLElement>('.acc-scope')!.textContent = scopeOf(best);
+    if (also) {
+      const alsoEl = document.createElement('div');
+      alsoEl.className = 'acc-also';
+      alsoEl.textContent = `also #${also.rank} · ${scopeOf(also)}`;
+      el.appendChild(alsoEl);
     }
-    rankingsList.appendChild(row);
+    rankingsList.appendChild(el);
   }
-  if (cells.length) {
-    const row = document.createElement('div');
-    row.className = 'acc-cells';
-    for (const r of cells) {
-      const cell = document.createElement('div');
-      cell.className = 'acc-cell';
-      cell.innerHTML =
-        '<div class="acc-rank"></div><div class="acc-ctx"></div><div class="acc-scope"></div>';
-      cell.querySelector<HTMLElement>('.acc-rank')!.textContent = `#${r.rank}`;
-      cell.querySelector<HTMLElement>('.acc-ctx')!.textContent = contextOf(r);
-      cell.querySelector<HTMLElement>('.acc-scope')!.textContent = scopeOf(r);
-      row.appendChild(cell);
-    }
-    rankingsList.appendChild(row);
-  }
-  rankingsSection.hidden = rankings.length === 0;
+  rankingsSection.hidden = rankingsList.children.length === 0;
 }
 
 /** Key staff as a credits grid: portrait, name, role — clickable to AniList. */

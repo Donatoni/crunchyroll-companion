@@ -160,25 +160,43 @@ body {
 .char .cn { font-size: 10.5px; margin-top: 6px; color: var(--text-2); line-height: 1.25; }
 .char .cr { font-size: 9.5px; color: var(--text-3); font-family: var(--mono); }
 
-/* rankings (AniList accolades) — flat typographic leaderboard */
-.rankings { display: flex; flex-direction: column; gap: 16px; }
-.acc-heroes { display: flex; flex-direction: column; gap: 12px; }
-.acc-hero { display: flex; align-items: center; gap: 14px; }
-.acc-hero .acc-rank {
-  font: 800 40px var(--mono); letter-spacing: -0.05em; line-height: 0.95;
-  background: linear-gradient(180deg, #ff9a52, #f0680f);
-  -webkit-background-clip: text; background-clip: text; color: transparent;
+/* rankings (AniList accolades) — twin marquee slots on a spotlit stat sheet.
+   Every show renders the same two slots (Highest Rated / Most Popular), so
+   the section reads identically across titles. */
+#rankingsSection { position: relative; overflow: hidden; }
+#rankingsSection .sec-head, #rankingsSection .rankings { position: relative; }
+.acc-bg { position: absolute; inset: 0; pointer-events: none; }
+/* warm stage light from the top-right corner + a faint counter-glow — static,
+   quieter than the old drifting aurora */
+.acc-bg::before {
+  content: ''; position: absolute; inset: 0;
+  background:
+    radial-gradient(130% 110% at 88% -10%, rgba(244, 117, 33, 0.16), rgba(244, 117, 33, 0.045) 46%, transparent 72%),
+    radial-gradient(90% 80% at -8% 112%, rgba(255, 149, 80, 0.07), transparent 60%);
 }
-.acc-hero .acc-meta { min-width: 0; }
-.acc-hero .acc-ctx { font-size: 14px; font-weight: 650; color: var(--text); line-height: 1.2; }
-.acc-hero .acc-scope { font: 600 9.5px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); margin-top: 3px; }
-.acc-cells { display: flex; }
-.acc-cell { flex: 1; min-width: 0; padding: 0 12px; }
-.acc-cell:first-child { padding-left: 0; }
-.acc-cell + .acc-cell { border-left: 1px solid var(--line-strong); }
-.acc-cell .acc-rank { font: 700 16px var(--mono); letter-spacing: -0.02em; color: var(--text); }
-.acc-cell .acc-ctx { font-size: 11px; color: var(--text-2); line-height: 1.3; margin-top: 3px; }
-.acc-cell .acc-scope { font: 500 9px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); margin-top: 2px; }
+/* fine stat-sheet grid that only shows where the light hits */
+.acc-bg::after {
+  content: ''; position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 21px 21px;
+  -webkit-mask-image: radial-gradient(120% 105% at 85% -5%, #000 15%, transparent 68%);
+  mask-image: radial-gradient(120% 105% at 85% -5%, #000 15%, transparent 68%);
+}
+.rankings { display: flex; }
+.acc-slot { flex: 1; min-width: 0; padding: 0 14px; }
+.acc-slot:first-child { padding-left: 0; }
+.acc-slot + .acc-slot { border-left: 1px solid var(--line-strong); }
+.acc-slot .acc-rank {
+  font: 800 34px var(--mono); letter-spacing: -0.05em; line-height: 1;
+  background: linear-gradient(180deg, #ffb37a, #f0680f);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 16px rgba(244, 117, 33, 0.3));
+}
+.acc-slot .acc-ctx { font-size: 13px; font-weight: 650; color: var(--text); line-height: 1.2; margin-top: 7px; }
+.acc-slot .acc-scope { font: 600 9.5px var(--mono); letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-bright); margin-top: 3px; }
+.acc-slot .acc-also { font: 500 9px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3); margin-top: 9px; }
 
 /* staff / credits (AniList) — flat rows: portrait, name, role */
 .staff { display: flex; flex-direction: column; }
